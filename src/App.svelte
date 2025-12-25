@@ -6,9 +6,20 @@
   import Notebook from "./components/Notebook.svelte";
   import AiAssistant from "./components/AiAssistant.svelte";
   import ArcaLogo from "./components/ArcaLogo.svelte";
+  import {
+    MusicNotes,
+    Timer,
+    NotePencil,
+    ChatCircleText,
+    Books,
+    Laptop,
+    Sun,
+    Moon,
+    MagicWand as Auto,
+  } from "phosphor-svelte";
 
   // Importar música local
-  import ambientMusic from "./assets/Jafar Idris - His Eye Is on the Sparrow.mp3";
+  import ambientMusic from "./assets/ambient.mp3";
 
   let data = [];
   let loading = true;
@@ -24,6 +35,7 @@
 
   // Tema Dinámico
   let theme = "night"; // 'morning' | 'afternoon' | 'night'
+  let manualOverride = null; // null (Auto) | 'light' | 'dark'
 
   // Temporizador
   let timerActive = false;
@@ -33,11 +45,52 @@
   // Música
   let isPaused = true;
   $: isPlaying = !isPaused;
+  let audioElement;
+  let volume = 0; // Control de volumen reactivo
+  let fadeInterval;
+
+  // Lógica de Fade-In Real
+  function toggleMusic() {
+    if (isPaused) {
+      // Iniciar reproducción
+      isPaused = false;
+      // volume = 0; // Ya se controla en el intervalo si hiciera falta resetear
+      // Resetear volumen a 0 para fade in
+      if (audioElement) {
+        audioElement.volume = 0;
+        volume = 0;
+      }
+
+      // Ramp up
+      clearInterval(fadeInterval);
+      fadeInterval = setInterval(() => {
+        if (audioElement && audioElement.volume < 0.5) {
+          // Max volumen 50%
+          let newVol = Math.min(0.5, audioElement.volume + 0.02);
+          audioElement.volume = newVol;
+          volume = newVol; // Sync local state variable just in case
+        } else {
+          clearInterval(fadeInterval);
+        }
+      }, 100);
+    } else {
+      // Pausa inmediata
+      isPaused = true;
+      clearInterval(fadeInterval);
+    }
+  }
 
   function updateTheme(hour) {
     if (hour >= 6 && hour < 12) theme = "morning";
     else if (hour >= 12 && hour < 21) theme = "afternoon";
     else theme = "night";
+  }
+
+  // Lógica de Toggle Manual
+  function toggleTheme() {
+    if (manualOverride === null) manualOverride = "light";
+    else if (manualOverride === "light") manualOverride = "dark";
+    else manualOverride = null; // Back to Auto
   }
 
   onMount(async () => {
@@ -60,6 +113,7 @@
   onDestroy(() => {
     clearInterval(timeInterval);
     stopTimer();
+    clearInterval(fadeInterval);
   });
 
   // Lógica del Temporizador
@@ -89,17 +143,38 @@
     return `${m}:${s}`;
   }
 
-  // Clases dinámicas de fondo
-  $: bgClass =
-    theme === "morning"
-      ? "from-amber-900/40 to-orange-900/40"
-      : theme === "afternoon"
-        ? "from-blue-900/40 to-cyan-900/40"
-        : "from-indigo-900/40 to-purple-900/40"; // Night default
+  // Clases dinámicas de fondo (Estilo "Logos Lite" + "Night Mode")
+  $: effectiveTheme = manualOverride || theme;
+  $: isLight =
+    effectiveTheme === "morning" ||
+    effectiveTheme === "afternoon" ||
+    effectiveTheme === "light";
+
+  // Fondo: Día = Blanco "Papel" / Noche = Indigo Profundo
+  $: bgClass = isLight
+    ? "bg-[#faf9f6]" // Blanco hueso (Off-white) para lectura cómoda
+    : "bg-[#0f0f13]"; // Casi negro para inmersión nocturna
+
+  // Icono del botón de tema
+  $: ThemeIcon =
+    manualOverride === "light" ? Sun : manualOverride === "dark" ? Moon : Auto;
+
+  // Textos Base
+  $: textClass = isLight ? "text-slate-800" : "text-slate-200";
+  // Textos Secundarios
+  $: subTextClass = isLight ? "text-slate-500" : "text-slate-400";
+  // Bordes / Separadores
+  $: borderClass = isLight ? "border-slate-200" : "border-white/10";
+  // Contenedores (Glassmorphism sutil)
+  $: cardClass = isLight
+    ? "bg-white border-slate-200 shadow-sm"
+    : "bg-white/5 border-white/10";
+  // Hover botones
+  $: hoverClass = isLight ? "hover:bg-slate-100" : "hover:bg-white/5";
 </script>
 
 <div
-  class="min-h-screen transition-colors duration-1000 bg-gradient-to-br {bgClass} text-slate-200 font-sans selection:bg-indigo-500/30"
+  class="min-h-screen transition-colors duration-700 {bgClass} {textClass} font-sans selection:bg-indigo-500/30"
 >
   <div
     class="max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col h-screen overflow-hidden"
@@ -113,15 +188,21 @@
         class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-start"
       >
         <div class="flex items-center gap-3">
-          <ArcaLogo size="w-10 h-10" color="text-white" />
+          <!-- Logo adaptable al tema -->
+          <ArcaLogo
+            size="w-10 h-10"
+            color={isLight ? "text-indigo-900" : "text-white"}
+          />
           <div>
             <h1
-              class="text-2xl md:text-3xl font-bold text-white tracking-tight leading-none"
+              class="text-2xl md:text-3xl font-bold tracking-tight leading-none {isLight
+                ? 'text-indigo-950'
+                : 'text-white'}"
             >
               El Arca
             </h1>
             <span
-              class="text-[10px] md:text-xs text-white/50 uppercase tracking-widest"
+              class="text-[10px] md:text-xs uppercase tracking-widest {subTextClass}"
               >Biblioteca Digital</span
             >
           </div>
@@ -129,65 +210,109 @@
 
         <!-- Navigation Tabs (SOLO MÓVIL) -->
         <nav
-          class="flex md:hidden bg-black/20 p-1 rounded-xl backdrop-blur-md border border-white/5"
+          class="flex md:hidden p-1 rounded-xl backdrop-blur-md border {borderClass} {isLight
+            ? 'bg-white/50'
+            : 'bg-black/20'}"
         >
           <button
             on:click={() => (activeTab = "library")}
-            class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all {activeTab ===
+            class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 {activeTab ===
             'library'
-              ? 'bg-white/10 text-white shadow-sm'
-              : 'text-slate-400'}"
+              ? isLight
+                ? 'bg-indigo-100 text-indigo-900 shadow-sm'
+                : 'bg-white/10 text-white shadow-sm'
+              : subTextClass}"
           >
-            Biblioteca
+            <Books size={16} /> Biblioteca
           </button>
           <button
             on:click={() => (activeTab = "notebook")}
-            class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all {activeTab ===
+            class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 {activeTab ===
             'notebook'
-              ? 'bg-white/10 text-white shadow-sm'
-              : 'text-slate-400'}"
+              ? isLight
+                ? 'bg-indigo-100 text-indigo-900 shadow-sm'
+                : 'bg-white/10 text-white shadow-sm'
+              : subTextClass}"
           >
-            Cuaderno
+            <NotePencil size={16} /> Cuaderno
           </button>
         </nav>
       </div>
 
       <!-- Widgets -->
       <div class="flex items-center gap-4 md:gap-6">
+        <!-- Theme Toggle Widget (NEW) -->
+        <button
+          on:click={toggleTheme}
+          class="group flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-sm font-mono transition-all border {borderClass} {cardClass} {hoverClass}"
+          title="Cambiar Tema (Auto / Día / Noche)"
+        >
+          <svelte:component
+            this={ThemeIcon}
+            size={18}
+            class={manualOverride
+              ? isLight
+                ? "text-amber-500"
+                : "text-indigo-400"
+              : subTextClass}
+          />
+          <span
+            class="hidden md:inline {subTextClass} text-xs uppercase font-bold"
+          >
+            {manualOverride === "light"
+              ? "Día"
+              : manualOverride === "dark"
+                ? "Noche"
+                : "Auto"}
+          </span>
+        </button>
+
         <!-- Ambient Music Widget -->
         <div class="flex items-center gap-2">
           <button
-            on:click={() => (isPaused = !isPaused)}
-            class="group flex items-center gap-2 bg-black/20 hover:bg-black/30 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-sm font-mono transition-all border border-white/5 hover:border-white/20 {isPlaying
+            on:click={toggleMusic}
+            class="group flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-sm font-mono transition-all border {borderClass} {cardClass} {hoverClass} {isPlaying
               ? 'ring-2 ring-emerald-500/50'
               : ''}"
             title={isPlaying ? "Pausar Ambiente" : "Reproducir Ambiente"}
           >
-            <span
+            <MusicNotes
+              size={18}
+              weight={isPlaying ? "fill" : "regular"}
               class={isPlaying
-                ? "animate-pulse text-emerald-400"
-                : "text-slate-500"}>🎵</span
-            >
+                ? "text-emerald-500 animate-pulse"
+                : subTextClass}
+            />
           </button>
-          <audio bind:paused={isPaused} loop src={ambientMusic}></audio>
+          <!-- Bind volumen y paused. Volume REMOVED to avoid errors, controlled via JS -->
+          <audio
+            bind:this={audioElement}
+            bind:paused={isPaused}
+            loop
+            src={ambientMusic}
+          ></audio>
         </div>
 
         <!-- Timer Widget -->
         <button
           on:click={toggleTimer}
-          class="group flex items-center gap-2 md:gap-3 bg-black/20 hover:bg-black/30 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-sm font-mono transition-all border border-white/5 hover:border-white/20 {timerActive
+          class="group flex items-center gap-2 md:gap-3 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-sm font-mono transition-all border {borderClass} {cardClass} {hoverClass} {timerActive
             ? 'ring-2 ring-indigo-500/50'
             : ''}"
         >
-          <span
-            class={timerActive
-              ? "animate-pulse text-indigo-400"
-              : "text-slate-500"}>⏱️</span
-          >
+          <Timer
+            size={18}
+            weight={timerActive ? "fill" : "regular"}
+            class={timerActive ? "text-indigo-500 animate-pulse" : subTextClass}
+          />
           <span
             class="text-lg md:text-xl font-bold {timerActive
-              ? 'text-indigo-100'
-              : 'text-slate-300'}"
+              ? isLight
+                ? 'text-indigo-900'
+                : 'text-indigo-100'
+              : isLight
+                ? 'text-slate-600'
+                : 'text-slate-300'}"
           >
             {formatTimer(timerSeconds)}
           </span>
@@ -195,14 +320,18 @@
 
         <!-- Clock Widget -->
         <div class="text-right hidden md:block">
-          <div class="text-2xl font-bold text-white leading-none">
+          <div
+            class="text-2xl font-bold leading-none {isLight
+              ? 'text-indigo-950'
+              : 'text-white'}"
+          >
             {currentTime.toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
             })}
           </div>
           <div
-            class="text-xs text-slate-400 font-medium uppercase tracking-wider mt-1"
+            class="text-xs font-medium uppercase tracking-wider mt-1 {subTextClass}"
           >
             {currentTime.toLocaleDateString([], {
               weekday: "long",
@@ -216,7 +345,7 @@
 
     <!-- CONTENT GRID -->
     <main class="flex-1 overflow-hidden grid md:grid-cols-2 gap-6 relative">
-      <!-- COLUMN 1: LIBRARY (Visible in Mobile if Tab=Library, Always in Desktop) -->
+      <!-- COLUMN 1: LIBRARY -->
       <div
         class="flex-col gap-6 overflow-hidden h-full {activeTab === 'library'
           ? 'flex'
@@ -224,18 +353,20 @@
       >
         {#if loading}
           <div class="flex-1 flex items-center justify-center">
-            <div class="text-xl text-white/50 animate-pulse font-light">
+            <div class="text-xl animate-pulse font-light {subTextClass}">
               Cargando la cuenca de datos...
             </div>
           </div>
         {:else}
-          <!-- Stats Compactos -->
+          <!-- Stats Compactos (Restaurado para V5) -->
           <div class="flex-shrink-0">
             <Stats {data} />
           </div>
           <!-- Tabla con Scroll Independiente -->
           <div
-            class="flex-1 overflow-hidden rounded-xl border border-white/10 bg-black/10 backdrop-blur-sm"
+            class="flex-1 overflow-hidden rounded-xl border {borderClass} {isLight
+              ? 'bg-white shadow-sm'
+              : 'bg-black/10 backdrop-blur-sm'}"
           >
             <Table {data} />
           </div>
@@ -248,38 +379,52 @@
           ? 'flex'
           : 'hidden md:flex'}"
       >
-        <!-- Pestañas Superiores para el Panel Derecho -->
+        <!-- Pestañas Superiores -->
         <div
-          class="flex bg-black/20 p-1 rounded-xl backdrop-blur-md border border-white/5 shrink-0 self-start"
+          class="flex p-1 rounded-xl border {borderClass} {cardClass} shrink-0 self-start"
         >
           <button
             on:click={() => (rightTab = "notebook")}
             class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 {rightTab ===
             'notebook'
-              ? 'bg-white/10 text-white shadow-sm'
-              : 'text-slate-400 hover:text-white'}"
+              ? isLight
+                ? 'bg-indigo-100 text-indigo-900 shadow-sm'
+                : 'bg-white/10 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-500 hover:bg-black/5'}"
           >
-            <span>📝</span> Cuaderno
+            <NotePencil
+              size={16}
+              weight={rightTab === "notebook" ? "fill" : "regular"}
+            /> Cuaderno
           </button>
           <button
             on:click={() => (rightTab = "assistant")}
             class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 {rightTab ===
             'assistant'
-              ? 'bg-white/10 text-white shadow-sm'
-              : 'text-slate-400 hover:text-white'}"
+              ? isLight
+                ? 'bg-indigo-100 text-indigo-900 shadow-sm'
+                : 'bg-white/10 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-500 hover:bg-black/5'}"
           >
-            <span>🤖</span> Asistente IA
+            <ChatCircleText
+              size={16}
+              weight={rightTab === "assistant" ? "fill" : "regular"}
+            /> Asistente IA
           </button>
         </div>
 
-        <div class="flex-1 h-full relative overflow-hidden">
+        <div
+          class="flex-1 h-full relative overflow-hidden rounded-xl border {borderClass} {isLight
+            ? 'bg-white shadow-sm'
+            : 'bg-white/5'}"
+        >
           {#if rightTab === "notebook"}
             <div class="h-full w-full absolute inset-0">
-              <Notebook />
+              <Notebook {isLight} />
             </div>
           {:else}
             <div class="h-full w-full absolute inset-0">
-              <AiAssistant />
+              <AiAssistant {isLight} />
             </div>
           {/if}
         </div>
@@ -288,13 +433,12 @@
 
     <!-- FOOTER -->
     <footer
-      class="mt-4 text-center text-[10px] text-slate-400 font-medium tracking-wide flex items-center justify-center gap-2 opacity-80 hover:opacity-100 transition-opacity pb-2"
+      class="mt-8 text-center text-[10px] font-medium tracking-wide flex flex-col items-center justify-center gap-1 opacity-60 hover:opacity-100 transition-opacity pb-6 {subTextClass}"
     >
       <span>&copy; {new Date().getFullYear()} Héctor Aguila</span>
-      <span>•</span>
-      <span class="flex items-center gap-1">
+      <span class="flex items-center gap-1 mt-1">
         Un Soñador con Poca Ram
-        <span class="text-base" title="Dev Mode">👨🏻‍💻</span>
+        <Laptop size={14} />
       </span>
     </footer>
   </div>
@@ -303,19 +447,40 @@
 <Toaster />
 
 <style>
-  /* Scrollbar estilizado */
+  /* Scrollbar estilizado y dinámico */
+  :global(:root) {
+    --scrollbar-thumb: rgba(255, 255, 255, 0.1);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Sobrescribir variables si es tema claro (detectado por clase en html o body, pero aquí lo haremos manual en style inline si es necesario, 
+     o mejor, usando una clase global 'light-theme' si existiera. 
+     Como no tenemos 'light-theme' global, usaremos selectores más específicos o simplemente colores oscuros con opacidad baja que funcionen en ambos o invertidos).
+  */
+
   ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px; /* Más sutil */
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
+  /* Thumb dinámico basado en las clases de color del padre */
+  /* En Light Mode el texto es oscuro, así que usamos un gris medio */
+  :global(.text-slate-800) ::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+  :global(.text-slate-800) ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+
+  /* En Dark Mode (default) */
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.15);
     border-radius: 10px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.25);
   }
 
   .scrollbar-hide::-webkit-scrollbar {

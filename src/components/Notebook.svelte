@@ -7,8 +7,11 @@
     import { TableCell } from "@tiptap/extension-table-cell";
     import { TableHeader } from "@tiptap/extension-table-header";
     import Placeholder from "@tiptap/extension-placeholder";
+    import CharacterCount from "@tiptap/extension-character-count"; // Importar extensión
     import toast from "svelte-french-toast";
     import ConfirmModal from "./ConfirmModal.svelte";
+
+    export let isLight = false; // Fix: Recibir prop para tema dinámico
 
     // Estado: 'list' (Galería) | 'editor' (Edición)
     let view = "list";
@@ -156,6 +159,7 @@
                     placeholder:
                         "Escribe aquí... Usa H1 para el título de la nota.",
                 }),
+                CharacterCount, // Agregar a extensiones
             ],
             content: note.content || `<h1>${note.title}</h1><p></p>`,
             onUpdate: ({ editor }) => {
@@ -205,18 +209,24 @@
 </script>
 
 <div
-    class="flex flex-col h-full bg-white/5 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden notebook-container relative"
+    class="flex flex-col h-full {isLight
+        ? 'bg-white border-slate-200'
+        : 'bg-white/5 border-white/10'} backdrop-blur-md rounded-xl border overflow-hidden notebook-container relative transition-colors duration-500"
 >
     {#if view === "list"}
         <!-- VISTA DE GALERÍA -->
         <div class="p-6 h-full flex flex-col">
             <div class="flex justify-between items-center mb-6">
                 <h2
-                    class="text-xl font-bold text-white flex items-center gap-2"
+                    class="text-xl font-bold flex items-center gap-2 {isLight
+                        ? 'text-slate-800'
+                        : 'text-white'}"
                 >
                     📚 Mis Estudios
                     <span
-                        class="text-xs bg-white/10 px-2 py-0.5 rounded-full text-slate-400 font-normal"
+                        class="text-xs px-2 py-0.5 rounded-full font-normal {isLight
+                            ? 'bg-slate-100 text-slate-500'
+                            : 'bg-white/10 text-slate-400'}"
                         >{notes.length}</span
                     >
                 </h2>
@@ -245,10 +255,15 @@
                 {#each notes as note (note.id)}
                     <div
                         on:click={() => openNote(note.id)}
-                        class="group relative bg-[#1a1a20] border border-white/5 hover:border-indigo-500/30 p-5 rounded-xl cursor-pointer transition-all hover:translate-y-[-2px] hover:shadow-xl"
+                        class="group relative border p-5 rounded-xl cursor-pointer transition-all hover:translate-y-[-2px] hover:shadow-xl
+                        {isLight
+                            ? 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-indigo-100/50'
+                            : 'bg-[#1a1a20] border-white/5 hover:border-indigo-500/30'}"
                     >
                         <h3
-                            class="font-bold text-slate-200 mb-2 line-clamp-1 group-hover:text-indigo-400 transition-colors"
+                            class="font-bold mb-2 line-clamp-1 transition-colors {isLight
+                                ? 'text-slate-700 group-hover:text-indigo-600'
+                                : 'text-slate-200 group-hover:text-indigo-400'}"
                         >
                             {note.title}
                         </h3>
@@ -258,7 +273,11 @@
                             {note.preview}
                         </p>
                         <div class="flex justify-between items-end mt-2">
-                            <span class="text-[10px] text-slate-600 font-mono">
+                            <span
+                                class="text-[10px] font-mono {isLight
+                                    ? 'text-slate-400'
+                                    : 'text-slate-600'}"
+                            >
                                 {new Date(note.updatedAt).toLocaleDateString(
                                     [],
                                     { day: "2-digit", month: "short" },
@@ -267,7 +286,9 @@
                             <button
                                 on:click|stopPropagation={(e) =>
                                     confirmDelete(e, note.id)}
-                                class="text-slate-600 hover:text-red-400 p-1.5 rounded-md hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100"
+                                class="p-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100 {isLight
+                                    ? 'text-slate-400 hover:text-red-500 hover:bg-red-50'
+                                    : 'text-slate-600 hover:text-red-400 hover:bg-white/5'}"
                                 title="Eliminar"
                             >
                                 🗑️
@@ -300,7 +321,10 @@
         <div class="flex flex-col h-full">
             <!-- Toolbar -->
             <div
-                class="flex gap-2 p-3 border-b border-white/10 bg-black/20 items-center overflow-x-auto whitespace-nowrap scrollbar-hide flex-shrink-0"
+                class="flex gap-2 p-3 border-b items-center overflow-x-auto whitespace-nowrap scrollbar-hide flex-shrink-0 transition-colors
+                {isLight
+                    ? 'bg-slate-50 border-slate-200'
+                    : 'bg-black/20 border-white/10'}"
             >
                 <button
                     on:click={closeEditor}
@@ -336,16 +360,36 @@
                             editor
                                 .chain()
                                 .focus()
+                                .toggleHeading({ level: 1 })
+                                .run()}
+                        class="px-3 py-1.5 rounded-lg text-xs font-serif transition-all
+                {editor.isActive('heading', { level: 1 })
+                            ? isLight
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-white/20 text-white shadow-sm'
+                            : isLight
+                              ? 'text-slate-600 hover:bg-slate-200'
+                              : 'text-slate-400 hover:bg-white/10 hover:text-white'}"
+                    >
+                        H1
+                    </button>
+                    <button
+                        on:click={() =>
+                            editor
+                                .chain()
+                                .focus()
                                 .toggleHeading({ level: 2 })
                                 .run()}
-                        class="px-3 py-1.5 rounded hover:bg-white/10 text-xs font-medium transition-colors {editor.isActive(
-                            'heading',
-                            { level: 2 },
-                        )
-                            ? 'bg-white/20 text-indigo-400'
-                            : 'text-slate-400'}"
+                        class="px-3 py-1.5 rounded-lg text-xs font-serif transition-all font-bold
+                {editor.isActive('heading', { level: 2 })
+                            ? isLight
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-white/20 text-white shadow-sm'
+                            : isLight
+                              ? 'text-slate-600 hover:bg-slate-200'
+                              : 'text-slate-400 hover:bg-white/10 hover:text-white'}"
                     >
-                        Subtítulo
+                        H2
                     </button>
 
                     <button
@@ -360,17 +404,23 @@
                         Párrafo
                     </button>
 
-                    <div class="w-px h-6 bg-white/10 mx-1"></div>
+                    <div
+                        class="w-px h-4 {isLight
+                            ? 'bg-slate-300'
+                            : 'bg-white/10'} mx-1"
+                    ></div>
 
                     <button
                         on:click={() =>
                             editor.chain().focus().toggleBold().run()}
-                        class="px-3 py-1.5 rounded hover:bg-white/10 text-xs font-medium transition-colors {editor.isActive(
-                            'bold',
-                        )
-                            ? 'bg-white/20 text-indigo-400'
-                            : 'text-slate-400'}"
-                        title="Negrita"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5
+                {editor.isActive('bold')
+                            ? isLight
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-white/20 text-white shadow-sm'
+                            : isLight
+                              ? 'text-slate-600 hover:bg-slate-200'
+                              : 'text-slate-400 hover:bg-white/10 hover:text-white'}"
                     >
                         Negrita
                     </button>
@@ -378,12 +428,14 @@
                     <button
                         on:click={() =>
                             editor.chain().focus().toggleItalic().run()}
-                        class="px-3 py-1.5 rounded hover:bg-white/10 text-xs font-medium transition-colors {editor.isActive(
-                            'italic',
-                        )
-                            ? 'bg-white/20 text-indigo-400'
-                            : 'text-slate-400'}"
-                        title="Cursiva"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5
+                {editor.isActive('italic')
+                            ? isLight
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-white/20 text-white shadow-sm'
+                            : isLight
+                              ? 'text-slate-600 hover:bg-slate-200'
+                              : 'text-slate-400 hover:bg-white/10 hover:text-white'}"
                     >
                         Cursiva
                     </button>
@@ -391,12 +443,14 @@
                     <button
                         on:click={() =>
                             editor.chain().focus().toggleBulletList().run()}
-                        class="px-3 py-1.5 rounded hover:bg-white/10 text-xs font-medium transition-colors {editor.isActive(
-                            'bulletList',
-                        )
-                            ? 'bg-white/20 text-indigo-400'
-                            : 'text-slate-400'}"
-                        title="Lista de Puntos"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all font-mono
+                {editor.isActive('bulletList')
+                            ? isLight
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-white/20 text-white shadow-sm'
+                            : isLight
+                              ? 'text-slate-600 hover:bg-slate-200'
+                              : 'text-slate-400 hover:bg-white/10 hover:text-white'}"
                     >
                         Lista
                     </button>
@@ -405,26 +459,60 @@
 
                     <button
                         on:click={savePDF}
-                        class="px-3 py-1.5 bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white rounded-md text-xs font-medium transition-colors flex items-center gap-2"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5
+                {isLight
+                            ? 'text-slate-500 hover:text-red-600 hover:bg-red-50'
+                            : 'text-slate-400 hover:text-white hover:bg-white/10'}"
+                        title="Imprimir PDF"
                     >
-                        <span>🖨️</span> PDF
+                        <span>🖨️ PDF</span>
+                    </button>
+
+                    <button
+                        on:click={downloadBackup}
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5
+                {isLight
+                            ? 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
+                            : 'text-slate-400 hover:text-white hover:bg-white/10'}"
+                        title="Descargar Respaldo JSON"
+                    >
+                        <span>💾 Backup</span>
                     </button>
                 {/if}
             </div>
 
             <!-- Editor Area -->
             <div
-                class="flex-1 overflow-auto bg-[#1e1e24] scroll-smooth relative"
+                class="flex-1 overflow-y-auto cursor-text p-6 md:p-8 outline-none"
+                on:click={() => editor?.commands.focus()}
             >
                 <div
                     bind:this={element}
-                    class="h-full w-full outline-none prose prose-invert max-w-none p-8"
+                    class="prose prose-sm md:prose-base max-w-none h-full outline-none
+            {isLight ? 'prose-slate' : 'prose-invert'}
+             prose-p:leading-relaxed prose-headings:font-serif prose-headings:tracking-tight
+             prose-a:text-indigo-400 prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/50 prose-blockquote:pl-4 prose-blockquote:italic
+            "
                 ></div>
+            </div>
+
+            <!-- Status Bar -->
+            <div
+                class="px-4 py-2 text-[10px] flex justify-between items-center border-t select-none transition-colors
+        {isLight
+                    ? 'bg-slate-50 border-slate-200 text-slate-400'
+                    : 'bg-black/20 border-white/5 text-slate-500'}"
+            >
+                <span>
+                    {notes.length} nota{notes.length !== 1 ? "s" : ""} en tu cuaderno
+                </span>
+                <span class="font-mono opacity-50">
+                    {editor?.storage.characterCount.words() || 0} palabras
+                </span>
             </div>
         </div>
     {/if}
 </div>
-```
 
 <style>
     /* Estilos específicos para Tiptap en Svelte */
@@ -444,19 +532,26 @@
         margin-bottom: 0.25rem !important;
     }
 
-    /* FIX HEADINGS: Asegurar tamaños visibles en vivo */
+    /* FIX HEADINGS: Estilos por defecto (Dark Mode) - Se sobrescriben inline o por clase padre */
     :global(.ProseMirror h1) {
         font-size: 2.25rem !important;
         font-weight: 800 !important;
         margin-bottom: 1rem !important;
-        color: white !important;
+        line-height: 1.2;
     }
     :global(.ProseMirror h2) {
         font-size: 1.5rem !important;
         font-weight: 700 !important;
         margin-top: 1.5rem !important;
         margin-bottom: 0.75rem !important;
-        color: #e2e8f0 !important;
+        line-height: 1.3;
+    }
+    :global(.ProseMirror h3) {
+        font-size: 1.25rem !important;
+        font-weight: 600 !important;
+        margin-top: 1.25rem !important;
+        margin-bottom: 0.5rem !important;
+        line-height: 1.4;
     }
 
     :global(.ProseMirror p.is-editor-empty:first-child::before) {
@@ -492,93 +587,121 @@
         background-color: rgba(255, 255, 255, 0.05);
     }
 
+    /* Adaptación a Light Mode para tablas */
+    :global(.light-theme .ProseMirror th) {
+        background-color: #f1f5f9; /* Slate 100 */
+        border-color: #cbd5e1; /* Slate 300 */
+        color: #1e293b;
+    }
+    :global(.light-theme .ProseMirror td) {
+        border-color: #cbd5e1;
+        color: #334155;
+    }
+
     /* Media Print para exportación limpia */
     @media print {
-        /* Estrategia de Visibilidad: Ocultar todo visualmente pero mantener layout básico */
-        :global(body) {
-            visibility: hidden !important;
+        @page {
+            margin: 2cm;
+            size: auto;
+        }
+
+        /* 1. RESET Y OCULTAMIENTO GLOBAL */
+        :global(body),
+        :global(#app) {
             background: white !important;
-            color: black !important;
-        }
-
-        /* Hacer visible EXPLICITAMENTE el contenedor del notebook y sus hijos */
-        :global(.notebook-container),
-        :global(.notebook-container *) {
-            visibility: visible !important;
-        }
-
-        /* Posicionar el notebook para ocupar toda la página física */
-        :global(.notebook-container) {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
             margin: 0 !important;
-            padding: 2cm !important; /* Margen de impresión */
-            background: white !important;
-            color: black !important;
-            z-index: 999999 !important;
-            overflow: visible !important;
-            border: none !important;
-            display: block !important;
-        }
-
-        /* Ocultar elementos de UI internos que no deben imprimirse */
-        .notebook-container > div:first-child, /* Toolbar */
-        .flex.justify-end /* Botón Backup */ {
-            display: none !important;
-        }
-
-        /* Estilos del contenido (ProseMirror) para impresión */
-        :global(.ProseMirror) {
-            font-family: "Georgia", serif !important;
-            font-size: 12pt !important;
-            line-height: 1.6 !important;
-            color: black !important;
-            background: white !important;
-            width: 100% !important;
+            padding: 0 !important;
+            visibility: hidden !important; /* Ocultar todo por defecto */
             height: auto !important;
             overflow: visible !important;
         }
 
-        :global(.ProseMirror h1) {
-            font-size: 24pt !important;
-            margin-bottom: 24pt !important;
-            color: black !important;
-            page-break-after: avoid;
+        /* 2. MOSTRAR SOLO EL NOTEBOOK */
+        :global(.notebook-container) {
+            visibility: visible !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            background: white !important;
+            display: block !important;
+            box-shadow: none !important;
         }
 
-        :global(.ProseMirror h2) {
-            font-size: 18pt !important;
-            margin-top: 20pt !important;
-            margin-bottom: 12pt !important;
+        /* 3. PROPAGAR VISIBILIDAD A HIJOS */
+        :global(.notebook-container *) {
+            visibility: visible !important;
+        }
+
+        /* 4. OCULTAR UI INTERNA DEL NOTEBOOK (Botones, barras, etc.) */
+        .toolbar,
+        .flex.gap-2.p-3, /* Toolbar container class approximation */
+        .flex.items-center.gap-2, /* Botones */
+        .flex.justify-between.items-center.border-t, /* Status Bar */
+        button {
+            display: none !important;
+        }
+
+        /* Asegurar que el área del editor sea visible y limpia */
+        .prose {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        /* ... (rest of typo styles) ... */
+        :global(.ProseMirror) {
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
             color: black !important;
-            page-break-after: avoid;
+            font-family: "Georgia", "Times New Roman", serif !important;
+            font-size: 11pt !important;
+            line-height: 1.5 !important;
         }
 
         :global(.ProseMirror p) {
-            margin-bottom: 12pt !important;
             color: black !important;
+            margin-bottom: 0.3cm !important;
+            text-align: justify !important;
         }
 
-        :global(.ProseMirror ul),
-        :global(.ProseMirror ol) {
-            margin-bottom: 12pt !important;
-            padding-left: 20pt !important;
+        :global(.ProseMirror h1) {
+            font-family: "Arial", sans-serif !important;
+            font-size: 18pt !important;
+            font-weight: bold !important;
             color: black !important;
+            margin-bottom: 0.5cm !important;
+            border-bottom: 2px solid #000 !important;
+            padding-bottom: 0.2cm !important;
+        }
+        :global(.ProseMirror h2) {
+            font-family: "Arial", sans-serif !important;
+            font-size: 14pt !important;
+            margin-top: 0.5cm !important;
+            color: #333 !important;
+        }
+        :global(.ProseMirror h3) {
+            font-size: 12pt !important;
         }
 
-        :global(.ProseMirror li) {
-            margin-bottom: 4pt !important;
-            color: black !important;
+        :global(.ProseMirror blockquote) {
+            border-left: 3px solid #666 !important;
+            margin-left: 0 !important;
+            padding-left: 0.5cm !important;
+            font-style: italic !important;
         }
 
-        /* Reset general de colores */
-        :global(.ProseMirror *) {
+        /* Ajustes de tabla para impresión */
+        :global(.ProseMirror table),
+        :global(.ProseMirror td),
+        :global(.ProseMirror th) {
+            border: 1px solid black !important;
             color: black !important;
-            background: transparent !important;
-            text-shadow: none !important;
+            page-break-inside: avoid;
         }
     }
 </style>

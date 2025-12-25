@@ -21,6 +21,21 @@
         }
     }
 
+    export function applyExternalFilter(type, value) {
+        // Mapeo simple: si es categoría, usamos setCategoryFilter
+        // Si es tag, lo ponemos en el buscador o lógica especial
+        if (type === "category") {
+            searchTerm = value;
+        } else if (type === "tag") {
+            searchTerm = value;
+        } else if (type === "format") {
+            // Hack: poner formato en búsqueda
+            searchTerm = value;
+        } else if (type === "author") {
+            searchTerm = value;
+        }
+    }
+
     function setCategoryFilter(category) {
         searchTerm = category;
     }

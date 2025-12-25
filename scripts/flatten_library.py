@@ -47,5 +47,7 @@ def flatten_directory(root_dir):
     print("El directorio ahora es plano y seguro para Windows/Drive.")
 
 if __name__ == "__main__":
-    LIBRARY_PATH = r"C:\Users\hdagu\Desktop\De TODO Cristiano\inventory-dashboard\public\library"
+    # Ajusta esto a tu ruta real (o usa "." para directorio actual)
+    LIBRARY_PATH = r"public\\library"
+    # LIBRARY_PATH = "." # Si el script se corre DENTRO de la carpeta library
     flatten_directory(LIBRARY_PATH)

@@ -23,6 +23,6 @@ def check_long_paths(start_path, max_length=250):
         print("SUGERENCIA: Acorta los nombres de las carpetas padre (ej: 'Guia del Instructor...' -> 'Guia Instructor').")
 
 if __name__ == "__main__":
-    # Ajusta esto a tu ruta real
-    LIBRARY_PATH = r"C:\Users\hdagu\Desktop\De TODO Cristiano\inventory-dashboard\public\library"
-    check_long_paths(LIBRARY_PATH)
+    # Buscar en el directorio actual por defecto
+    search_path = "."
+    check_long_paths(search_path)

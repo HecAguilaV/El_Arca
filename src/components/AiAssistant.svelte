@@ -1,201 +1,378 @@
 <script>
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import { aiService } from "../lib/gemini";
+    import { scale, fade, slide } from "svelte/transition";
+    import toast from "svelte-french-toast";
+    import {
+        PaperPlaneRight,
+        ChalkboardTeacher,
+        User,
+        Trash,
+        WarningCircle,
+        ChatCircleText,
+    } from "phosphor-svelte";
+
+    // ... (previous imports)
+
+    export let isLight = false; // Prop recibida desde App.svelte
 
     let messages = [];
-    let input = "";
+    let userInput = "";
     let isLoading = false;
-    let selectedPersona = "neofito";
-
-    // Referencia al chat para auto-scroll
     let chatContainer;
+    let showConfig = false;
 
-    function scrollToBottom() {
-        setTimeout(() => {
-            if (chatContainer)
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-        }, 100);
+    // Mapa de nombres bonitos para la UI
+    const personaLabels = {
+        reformado: "Teólogo Reformado",
+        puritano: "Puritano Clásico",
+        bautista: "Bautista (1689)",
+        pentecostal: "Pentecostal",
+        academico: "Erudito Bíblico",
+        pastoral: "Consejero Pastoral",
+        neofito: "Mentor Básico",
+    };
+
+    // Cargar historial
+    onMount(() => {
+        const saved = localStorage.getItem("arca_chat_history");
+        if (saved) messages = JSON.parse(saved);
+
+        // Verificar API Key al inicio (silencioso)
+        if (!aiService.apiKey) {
+            messages = [
+                ...messages,
+                {
+                    role: "system",
+                    text: "⚠️ El sistema de IA no está configurado. Contacte al administrador.",
+                },
+            ];
+        }
+    });
+
+    async function scrollToBottom() {
+        await tick();
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
     }
 
-    async function send() {
-        if (!input.trim() || isLoading) return;
+    async function sendMessage() {
+        if (!userInput.trim() || isLoading) return;
 
-        const userMsg = { role: "user", text: input };
-        messages = [...messages, userMsg];
-        const question = input;
-        input = "";
+        if (!aiService.apiKey) {
+            toast.error("Error de Configuración: API Key no encontrada.", {
+                style: "background: #1e1e24; color: #fff; border: 1px solid #ef4444;",
+            });
+            return;
+        }
+
+        const text = userInput;
+        userInput = ""; // Limpiar input inmediatamente
         isLoading = true;
+
+        // Usuario
+        messages = [...messages, { role: "user", text }];
         scrollToBottom();
 
         try {
-            const context = localStorage.getItem("arca_notebook_content") || "";
-            const response = await aiService.sendMessage(
-                question,
-                selectedPersona,
-                context,
-            );
+            // LLamada a Gemini con la persona seleccionada
+            const response = await aiService.sendMessage(text, currentPersona);
+
+            // Respuesta IA
             messages = [...messages, { role: "model", text: response }];
+            saveHistory();
         } catch (error) {
+            console.error(error);
             messages = [
                 ...messages,
-                { role: "error", text: `Error: ${error.message}` },
+                {
+                    role: "error",
+                    text: "Lo siento, hubo un error al conectar con el servicio de teología. Por favor revisa tu conexión.",
+                },
             ];
-            if (error.message === "API_KEY_MISSING") {
-                messages = [
-                    ...messages,
-                    {
-                        role: "error",
-                        text: "Error de Configuración: Contacte al administrador (API Key no encontrada).",
-                    },
-                ];
-            } else {
-                messages = [
-                    ...messages,
-                    { role: "error", text: `Error: ${error.message}` },
-                ];
-            }
         } finally {
             isLoading = false;
             scrollToBottom();
         }
     }
 
-    // Mapa de nombres bonitos para la UI
-    const labels = {
-        neofito: "🌱 Neófito (Básico)",
-        puritano: "🎩 Puritano",
-        reformado: "🏰 Reformado",
-        bautista: "💧 Bautista",
-        pentecostal: "🔥 Pentecostal",
-        academico: "🎓 Académico",
-        pastoral: "❤️ Pastoral",
-    };
+    function saveHistory() {
+        localStorage.setItem("arca_chat_history", JSON.stringify(messages));
+    }
+
+    function clearHistory() {
+        if (confirm("¿Borrar toda la conversación?")) {
+            messages = [];
+            localStorage.removeItem("arca_chat_history");
+            toast.success("Historial borrado");
+        }
+    }
+
+    function handleKeydown(e) {
+        // Permitir Enter normal para salto de línea, NO enviar.
+        return;
+    }
+
+    // ... (inside div wrapper) ...
+    function setPersona(p) {
+        aiService.setPersona(p);
+        toast.success(`Modo: ${personaLabels[p]}`);
+        showConfig = false;
+    }
 </script>
 
 <div
-    class="flex flex-col h-full bg-[#1a1a20] rounded-xl border border-white/10 overflow-hidden relative"
+    class="flex flex-col h-full {isLight
+        ? 'bg-white'
+        : 'bg-[#0f0f13]'} relative overflow-hidden transition-colors duration-500"
 >
-    <!-- Header del Asistente -->
+    <!-- Header del Chat -->
     <div
-        class="flex items-center justify-between p-3 border-b border-white/10 bg-black/20"
+        class="flex items-center justify-between p-4 border-b {isLight
+            ? 'border-slate-200 bg-slate-50'
+            : 'border-white/5 bg-[#14141a]'}"
     >
         <div class="flex items-center gap-3">
-            <!-- Icono Mejorado: Pergamino Antiguo -->
+            <!-- Icon Container -->
             <div
-                class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30"
+                class="w-10 h-10 rounded-lg flex items-center justify-center border {isLight
+                    ? 'bg-indigo-100 border-indigo-200'
+                    : 'bg-indigo-900/30 border-indigo-500/20'}"
             >
-                <span class="text-lg">📜</span>
+                <ChalkboardTeacher
+                    size={24}
+                    class={isLight ? "text-indigo-700" : "text-indigo-400"}
+                />
             </div>
-            <div class="flex flex-col">
-                <span class="text-sm font-bold text-slate-200"
-                    >Consejero Teológico</span
+            <div>
+                <h2
+                    class="text-sm font-bold leading-tight {isLight
+                        ? 'text-slate-800'
+                        : 'text-slate-200'}"
                 >
-                <span
-                    class="text-[10px] text-emerald-400 font-mono flex items-center gap-1"
-                >
-                    <span
-                        class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
-                    ></span>
-                    Online
-                </span>
+                    Asistente Teológico
+                </h2>
+                <!-- ... Status ... -->
             </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button
+                on:click={clearHistory}
+                class="p-2 rounded-lg transition-colors {isLight
+                    ? 'text-slate-400 hover:text-red-600 hover:bg-slate-200'
+                    : 'text-slate-500 hover:text-red-400 hover:bg-white/5'}"
+                title="Borrar Historial"
+            >
+                <Trash size={18} />
+            </button>
+            <button
+                on:click={() => (showConfig = !showConfig)}
+                class="p-2 rounded-lg transition-colors {isLight
+                    ? 'text-slate-400 hover:text-indigo-600 hover:bg-slate-200'
+                    : 'text-slate-500 hover:text-indigo-400 hover:bg-white/5'} {showConfig
+                    ? isLight
+                        ? 'text-indigo-600 bg-slate-200'
+                        : 'text-indigo-400 bg-white/5'
+                    : ''}"
+                title="Cambiar Especialista"
+            >
+                <ChatCircleText size={18} />
+            </button>
         </div>
     </div>
 
-    <!-- Selector de Persona -->
-    <div
-        class="p-2 bg-white/5 border-b border-white/10 flex gap-2 overflow-x-auto scrollbar-hide"
-    >
-        {#each Object.keys(labels) as persona}
-            <button
-                on:click={() => (selectedPersona = persona)}
-                class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap flex items-center gap-1
-                {selectedPersona === persona
-                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
-                    : 'border-transparent bg-black/20 text-slate-400 hover:bg-white/10 hover:text-white'}"
+    <!-- Configuración de Persona (Dropdown) -->
+    {#if showConfig}
+        <div
+            transition:slide={{ duration: 200 }}
+            class="border-b p-4 z-10 shadow-xl {isLight
+                ? 'bg-white border-slate-200'
+                : 'bg-[#1a1a20] border-white/5'}"
+        >
+            <h3
+                class="text-xs font-bold uppercase tracking-widest mb-3 {isLight
+                    ? 'text-slate-500'
+                    : 'text-slate-400'}"
             >
-                {labels[persona]}
-            </button>
-        {/each}
-    </div>
+                Seleccionar Enfoque Teológico
+            </h3>
+            <div class="grid grid-cols-2 gap-2">
+                {#each Object.entries(personaLabels) as [key, label]}
+                    <button
+                        on:click={() => setPersona(key)}
+                        class="text-left px-3 py-2 rounded-lg text-xs font-medium border transition-all
+                        {aiService.currentPersona === key
+                            ? isLight
+                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                                : 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300'
+                            : isLight
+                              ? 'border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                              : 'border-white/5 hover:bg-white/5 text-slate-400 hover:text-slate-200'}"
+                    >
+                        {label}
+                    </button>
+                {/each}
+            </div>
+        </div>
+    {/if}
 
-    <!-- Chat Area -->
+    <!-- Area de Mensajes -->
     <div
-        class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
         bind:this={chatContainer}
+        class="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth"
     >
         {#if messages.length === 0}
             <div
-                class="flex flex-col items-center justify-center h-full text-slate-600 text-center opacity-60"
+                in:fade
+                class="h-full flex flex-col items-center justify-center text-center p-8 opacity-50"
             >
-                <span class="text-4xl mb-3 grayscale opacity-50">🕊️</span>
-                <p class="text-sm font-medium text-slate-400">
-                    Paz sea contigo.
-                </p>
-                <p class="text-xs mt-1">
-                    Selecciona un enfoque y haz tu pregunta.
+                <ChalkboardTeacher
+                    size={48}
+                    class="{isLight ? 'text-slate-300' : 'text-slate-600'} mb-4"
+                />
+                <p
+                    class="{isLight
+                        ? 'text-slate-400'
+                        : 'text-slate-500'} text-sm max-w-[250px]"
+                >
+                    Hola. Soy tu asistente de investigación. ¿En qué tema
+                    teológico estás trabajando hoy?
                 </p>
             </div>
         {/if}
 
         {#each messages as msg}
             <div
-                class="flex flex-col {msg.role === 'user'
-                    ? 'items-end'
-                    : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300"
+                class="flex gap-4 {msg.role === 'user'
+                    ? 'flex-row-reverse'
+                    : ''}"
+                in:scale={{ duration: 200, start: 0.95 }}
             >
+                <!-- Avatar -->
                 <div
-                    class="max-w-[85%] rounded-2xl p-3.5 text-sm shadow-sm
-                    {msg.role === 'user'
-                        ? 'bg-indigo-600 text-white rounded-br-none'
+                    class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold shadow-lg
+          {msg.role === 'user'
+                        ? isLight
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-indigo-900/50 text-indigo-200 ring-1 ring-indigo-500/30'
                         : msg.role === 'error'
-                          ? 'bg-red-900/50 text-red-100 border border-red-500/30'
-                          : 'bg-white/10 text-slate-200 rounded-bl-none border border-white/5'}"
+                          ? 'bg-red-500 text-white'
+                          : isLight
+                            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                            : 'bg-emerald-900/30 text-emerald-300 ring-1 ring-emerald-500/20'}"
                 >
-                    {@html msg.text.replace(/\n/g, "<br>")}
+                    {#if msg.role === "user"}
+                        <User size={14} />
+                    {:else if msg.role === "error"}
+                        <WarningCircle size={14} />
+                    {:else}
+                        <ChalkboardTeacher size={14} />
+                    {/if}
                 </div>
-                <span class="text-[10px] text-slate-600 mt-1 px-1 font-medium">
-                    {msg.role === "user" ? "Tú" : "Consejero"}
-                </span>
+
+                <!-- Burbuja de Texto -->
+                <div
+                    class="max-w-[85%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed shadow-sm
+          {msg.role === 'user'
+                        ? (isLight
+                              ? 'bg-indigo-600 text-white border-indigo-700'
+                              : 'bg-[#1e1e28] text-indigo-100/90 border-indigo-500/10') +
+                          ' rounded-tr-sm border'
+                        : msg.role === 'error'
+                          ? 'bg-red-50 border-red-200 text-red-700'
+                          : (isLight
+                                ? 'bg-white text-slate-700 border-slate-200'
+                                : 'bg-[#18181e] text-slate-300 border-white/5') +
+                            ' rounded-tl-sm border font-serif'}"
+                >
+                    {@html window.marked?.parse(msg.text) || msg.text}
+                </div>
             </div>
         {/each}
 
+        <!-- Loading State -->
         {#if isLoading}
-            <div class="flex items-start">
+            <!-- ... (Adjust loading colors similarly) ... -->
+            <div class="flex gap-4" in:fade>
                 <div
-                    class="bg-white/5 rounded-2xl rounded-bl-none p-4 text-sm flex gap-2 items-center"
+                    class="w-8 h-8 rounded-full flex items-center justify-center {isLight
+                        ? 'bg-emerald-50'
+                        : 'bg-emerald-900/30 ring-1 ring-emerald-500/20'}"
                 >
-                    <span
-                        class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"
-                    ></span>
-                    <span
-                        class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-100"
-                    ></span>
-                    <span
-                        class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce delay-200"
-                    ></span>
+                    <ChalkboardTeacher
+                        size={14}
+                        class="{isLight
+                            ? 'text-emerald-500'
+                            : 'text-emerald-300'} animate-pulse"
+                    />
+                </div>
+                <div
+                    class="px-4 py-3 rounded-2xl rounded-tl-sm flex gap-1 items-center border {isLight
+                        ? 'bg-white border-slate-200'
+                        : 'bg-[#18181e] border-white/5'}"
+                >
+                    <div
+                        class="w-1.5 h-1.5 {isLight
+                            ? 'bg-slate-400'
+                            : 'bg-slate-500'} rounded-full animate-bounce"
+                    ></div>
+                    <div
+                        class="w-1.5 h-1.5 {isLight
+                            ? 'bg-slate-400'
+                            : 'bg-slate-500'} rounded-full animate-bounce delay-75"
+                    ></div>
+                    <div
+                        class="w-1.5 h-1.5 {isLight
+                            ? 'bg-slate-400'
+                            : 'bg-slate-500'} rounded-full animate-bounce delay-150"
+                    ></div>
                 </div>
             </div>
         {/if}
     </div>
 
     <!-- Input Area -->
-    <div class="p-3 bg-black/20 border-t border-white/10 backdrop-blur-md">
-        <form on:submit|preventDefault={send} class="flex gap-2">
-            <input
-                type="text"
-                bind:value={input}
-                placeholder="Escribe tu duda teológica..."
-                class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition-all shadow-inner"
-                disabled={isLoading}
-            />
-            <button
-                type="submit"
-                disabled={isLoading || !input.trim()}
-                class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl transition-all font-medium shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95"
-            >
-                <span class="text-base">➤</span>
-            </button>
-        </form>
+    <div
+        class="p-4 border-t {isLight
+            ? 'bg-slate-50 border-slate-200'
+            : 'bg-[#14141a] border-white/5'}"
+    >
+        <div
+            class="relative flex flex-col border rounded-xl transition-all shadow-inner
+            {isLight
+                ? 'bg-white border-slate-200 focus-within:border-indigo-500 focus-within:ring-indigo-500/20'
+                : 'bg-[#0a0a0c] border-white/10 focus-within:border-indigo-500/50 focus-within:ring-indigo-500/20'}"
+        >
+            <textarea
+                bind:value={userInput}
+                on:keydown={handleKeydown}
+                placeholder="Escribe tu consulta teológica aquí..."
+                rows="3"
+                class="w-full bg-transparent text-sm p-4 outline-none resize-none font-sans {isLight
+                    ? 'text-slate-700 placeholder:text-slate-400'
+                    : 'text-slate-200 placeholder:text-slate-600'}"
+            ></textarea>
+
+            <div class="flex justify-between items-center px-2 pb-2 mt-[-5px]">
+                <span
+                    class="text-[10px] ml-2 font-medium {isLight
+                        ? 'text-slate-400'
+                        : 'text-slate-600'}">Enter para nueva línea</span
+                >
+                <button
+                    on:click={sendMessage}
+                    class="p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center gap-2 pr-4 pl-3
+                    {isLight
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-900/20'}"
+                    disabled={!userInput.trim() || isLoading}
+                >
+                    <span class="text-xs font-bold tracking-wide">ENVIAR</span>
+                    <PaperPlaneRight size={16} weight="fill" />
+                </button>
+            </div>
+        </div>
     </div>
 </div>

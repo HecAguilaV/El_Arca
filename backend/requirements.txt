@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pypdf
+python-docx
+beautifulsoup4
+requests
+python-dotenv
+python-pptx
+rank_bm25

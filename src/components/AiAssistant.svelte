@@ -15,11 +15,13 @@
     // ... (previous imports)
 
     export let isLight = false; // Prop recibida desde App.svelte
+    export let userName = "Estudiante";
 
     let messages = [];
     let userInput = "";
     let isLoading = false;
     let chatContainer;
+    let currentPersona = "reformado"; // Default persona
     let showConfig = false;
 
     // Mapa de nombres bonitos para la UI
@@ -28,6 +30,8 @@
         puritano: "Puritano Clásico",
         bautista: "Bautista (1689)",
         pentecostal: "Pentecostal",
+        neopuritano: "Neopuritano",
+        bautista_moderno: "Bautista Moderno",
         academico: "Erudito Bíblico",
         pastoral: "Consejero Pastoral",
         neofito: "Mentor Básico",
@@ -76,8 +80,13 @@
         scrollToBottom();
 
         try {
-            // LLamada a Gemini con la persona seleccionada
-            const response = await aiService.sendMessage(text, currentPersona);
+            // LLamada a Gemini con la persona seleccionada Y el nombre
+            const response = await aiService.sendMessage(
+                userInput,
+                currentPersona,
+                "",
+                userName,
+            );
 
             // Respuesta IA
             messages = [...messages, { role: "model", text: response }];
@@ -203,7 +212,7 @@
                     <button
                         on:click={() => setPersona(key)}
                         class="text-left px-3 py-2 rounded-lg text-xs font-medium border transition-all
-                        {aiService.currentPersona === key
+                        {currentPersona === key
                             ? isLight
                                 ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
                                 : 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300'

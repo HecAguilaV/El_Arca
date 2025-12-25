@@ -5,17 +5,21 @@
   import { Toaster } from "svelte-french-toast";
   import Notebook from "./components/Notebook.svelte";
   import AiAssistant from "./components/AiAssistant.svelte";
+  import BibleWidget from "./components/BibleWidget.svelte";
   import ArcaLogo from "./components/ArcaLogo.svelte";
+  import BackendDiagnostics from "./components/BackendDiagnostics.svelte";
   import {
     MusicNotes,
     Timer,
     NotePencil,
     ChatCircleText,
+    BookOpen,
     Books,
     Laptop,
     Sun,
     Moon,
     MagicWand as Auto,
+    CloudArrowUp,
   } from "phosphor-svelte";
 
   // Importar música local
@@ -23,6 +27,8 @@
 
   let data = [];
   let loading = true;
+  let showDiagnostics = false;
+  let userName = localStorage.getItem("arca_username") || "";
 
   // Tabs Principales (Móvil)
   let activeTab = "library"; // 'library' | 'notebook'
@@ -93,7 +99,21 @@
     else manualOverride = null; // Back to Auto
   }
 
+  import WelcomeModal from "./components/WelcomeModal.svelte";
+
+  // UI State
+  let showMobileMenu = false;
+  let showStats = false;
+  let showWelcomeModal = false;
+
   onMount(async () => {
+    // Verificar Nombre
+    setTimeout(() => {
+      if (!userName || userName === "Estudiante" || userName.trim() === "") {
+        showWelcomeModal = true;
+      }
+    }, 500);
+
     timeInterval = setInterval(() => {
       currentTime = new Date();
       updateTheme(currentTime.getHours());
@@ -109,6 +129,12 @@
       loading = false;
     }
   });
+
+  function handleWelcomeSave(event) {
+    userName = event.detail;
+    localStorage.setItem("arca_username", userName);
+    showWelcomeModal = false;
+  }
 
   onDestroy(() => {
     clearInterval(timeInterval);
@@ -150,24 +176,24 @@
     effectiveTheme === "afternoon" ||
     effectiveTheme === "light";
 
-  // Fondo: Día = Blanco "Papel" / Noche = Indigo Profundo
+  // Fondo: Día = Stone-200 (Cálido y mate, evita el resplandor) / Noche = Indigo Profundo
   $: bgClass = isLight
-    ? "bg-[#faf9f6]" // Blanco hueso (Off-white) para lectura cómoda
-    : "bg-[#0f0f13]"; // Casi negro para inmersión nocturna
+    ? "bg-[#e7e5e4]" // Stone-200: Un gris cálido estilo "papel reciclado" que no quema la vista
+    : "bg-[#0f0f13]";
 
   // Icono del botón de tema
   $: ThemeIcon =
     manualOverride === "light" ? Sun : manualOverride === "dark" ? Moon : Auto;
 
-  // Textos Base
-  $: textClass = isLight ? "text-slate-800" : "text-slate-200";
+  // Textos Base (Stone-800 para suavizar el negro puro)
+  $: textClass = isLight ? "text-stone-800" : "text-slate-200";
   // Textos Secundarios
-  $: subTextClass = isLight ? "text-slate-500" : "text-slate-400";
+  $: subTextClass = isLight ? "text-stone-500" : "text-slate-400";
   // Bordes / Separadores
-  $: borderClass = isLight ? "border-slate-200" : "border-white/10";
-  // Contenedores (Glassmorphism sutil)
+  $: borderClass = isLight ? "border-stone-300" : "border-white/10";
+  // Contenedores (Stone-50: Blanco roto)
   $: cardClass = isLight
-    ? "bg-white border-slate-200 shadow-sm"
+    ? "bg-[#fafaf9] border-stone-300 shadow-sm" // Stone-50
     : "bg-white/5 border-white/10";
   // Hover botones
   $: hoverClass = isLight ? "hover:bg-slate-100" : "hover:bg-white/5";
@@ -203,7 +229,7 @@
             </h1>
             <span
               class="text-[10px] md:text-xs uppercase tracking-widest {subTextClass}"
-              >Biblioteca Digital</span
+              >Biblioteca Digital {userName ? `- ${userName}` : ""}</span
             >
           </div>
         </div>
@@ -360,7 +386,7 @@
         {:else}
           <!-- Stats Compactos (Restaurado para V5) -->
           <div class="flex-shrink-0">
-            <Stats {data} />
+            <Stats {data} {isLight} />
           </div>
           <!-- Tabla con Scroll Independiente -->
           <div
@@ -368,7 +394,7 @@
               ? 'bg-white shadow-sm'
               : 'bg-black/10 backdrop-blur-sm'}"
           >
-            <Table {data} />
+            <Table {data} {isLight} />
           </div>
         {/if}
       </div>
@@ -407,9 +433,23 @@
               : 'text-slate-400 hover:text-slate-500 hover:bg-black/5'}"
           >
             <ChatCircleText
-              size={16}
+              size={18}
               weight={rightTab === "assistant" ? "fill" : "regular"}
-            /> Asistente IA
+            /> Asistente
+          </button>
+          <button
+            on:click={() => (rightTab = "bible")}
+            class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 {rightTab ===
+            'bible'
+              ? isLight
+                ? 'bg-indigo-100 text-indigo-900 shadow-sm'
+                : 'bg-white/10 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-500 hover:bg-black/5'}"
+          >
+            <BookOpen
+              size={18}
+              weight={rightTab === "bible" ? "fill" : "regular"}
+            /> Biblia
           </button>
         </div>
 
@@ -422,9 +462,13 @@
             <div class="h-full w-full absolute inset-0">
               <Notebook {isLight} />
             </div>
-          {:else}
+          {:else if rightTab === "assistant"}
             <div class="h-full w-full absolute inset-0">
-              <AiAssistant {isLight} />
+              <AiAssistant {isLight} {userName} />
+            </div>
+          {:else if rightTab === "bible"}
+            <div class="h-full w-full absolute inset-0">
+              <BibleWidget {isLight} />
             </div>
           {/if}
         </div>
@@ -436,14 +480,25 @@
       class="mt-8 text-center text-[10px] font-medium tracking-wide flex flex-col items-center justify-center gap-1 opacity-60 hover:opacity-100 transition-opacity pb-6 {subTextClass}"
     >
       <span>&copy; {new Date().getFullYear()} Héctor Aguila</span>
-      <span class="flex items-center gap-1 mt-1">
-        Un Soñador con Poca Ram
-        <Laptop size={14} />
-      </span>
+      <button
+        on:click={() => (showDiagnostics = true)}
+        class="flex items-center gap-1 mt-1 hover:text-indigo-400 transition-colors cursor-pointer"
+        title="Abrir Diagnóstico del Sistema"
+      >
+        >Un Soñador con Poca Ram
+        <Laptop size={15} />
+      </button>
     </footer>
   </div>
 </div>
 
+<BackendDiagnostics
+  isOpen={showDiagnostics}
+  onClose={() => (showDiagnostics = false)}
+/>
+{#if showWelcomeModal}
+  <WelcomeModal {isLight} on:save={handleWelcomeSave} />
+{/if}
 <Toaster />
 
 <style>

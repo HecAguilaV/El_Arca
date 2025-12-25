@@ -27,7 +27,8 @@ dist-ssr
 # Arca Specific
 # IMPORTANTE: No subir la biblioteca gigante a GitHub
 public/library/*
-public/data.json
+# public/data.json (Commented out to allow catalog upload)
+# public/data.json
 .env
 .gemini/
 scripts/__pycache__/

@@ -27,7 +27,7 @@ export class GeminiService {
         return this.personas[type] || this.personas.neofito;
     }
 
-    async sendMessage(message, personaType = "neofito", context = "") {
+    async sendMessage(message, personaType = "neofito", context = "", userName = "Estudiante") {
         if (!this.apiKey) throw new Error("API_KEY_MISSING");
 
         const systemInstruction = this.getPersonaPrompt(personaType);
@@ -37,6 +37,11 @@ export class GeminiService {
       
       INSTRUCCIÓN DE CONTROL:
       ${systemInstruction}
+      
+      IMPORTANTE:
+      1. Responde de manera CONCISA y DIRECTA. Evita saludos largos o introducciones innecesarias ("¡Hola! Es un placer..."). Ve al grano.
+      2. Dirígete al usuario como "${userName}".
+      3. Si el usuario solo saluda ("Hola"), responde brevemente. Si hace una pregunta compleja, explayate lo necesario pero sin relleno.
 
       PREGUNTA DEL USUARIO:
       ${message}

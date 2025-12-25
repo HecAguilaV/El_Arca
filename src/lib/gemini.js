@@ -1,9 +1,9 @@
-export class GeminiService {
+export class ServicioGemini {
     constructor() {
         // Prioridad: 1. LocalStorage (Usuario) 2. Variable de Entorno (Vercel)
-        this.apiKey = localStorage.getItem("arca_ai_key") || import.meta.env.VITE_GEMINI_API_KEY || "";
-        this.history = [];
-        this.model = "gemini-2.5-flash";
+        this.claveAPI = localStorage.getItem("arca_ai_key") || import.meta.env.VITE_GEMINI_API_KEY || "";
+        this.historial = [];
+        this.modelo = "gemini-2.0-flash";
 
         this.personas = {
             reformado: "Actúa como un teólogo reformado experto. Cita a Calvino, Sproul y la Confesión de Westminster. Enfatiza la soberanía de Dios, la gracia irresistible y las doctrinas de la gracia. Tono académico pero pastoral.",
@@ -18,38 +18,38 @@ export class GeminiService {
         };
     }
 
-    setApiKey(key) {
-        this.apiKey = key;
-        localStorage.setItem("arca_ai_key", key);
+    establecerClaveAPI(clave) {
+        this.claveAPI = clave;
+        localStorage.setItem("arca_ai_key", clave);
     }
 
-    getPersonaPrompt(type) {
-        return this.personas[type] || this.personas.neofito;
+    obtenerPromptPersona(tipo) {
+        return this.personas[tipo] || this.personas.neofito;
     }
 
-    async sendMessage(message, personaType = "neofito", context = "", userName = "Estudiante") {
-        if (!this.apiKey) throw new Error("API_KEY_MISSING");
+    async enviarMensaje(mensaje, tipoPersona = "neofito", contexto = "", nombreUsuario = "Estudiante") {
+        if (!this.claveAPI) throw new Error("API_KEY_MISSING");
 
-        const systemInstruction = this.getPersonaPrompt(personaType);
-        const finalPrompt = `
+        const instruccionSistema = this.obtenerPromptPersona(tipoPersona);
+        const promptFinal = `
       CONTEXTO DEL USUARIO (Notas/Lectura actual):
-      "${context.substring(0, 5000)}" 
+      "${contexto.substring(0, 5000)}" 
       
       INSTRUCCIÓN DE CONTROL:
-      ${systemInstruction}
+      ${instruccionSistema}
       
       IMPORTANTE:
       1. Responde de manera CONCISA y DIRECTA. Evita saludos largos o introducciones innecesarias ("¡Hola! Es un placer..."). Ve al grano.
-      2. Dirígete al usuario como "${userName}".
+      2. Dirígete al usuario como "${nombreUsuario}".
       3. Si el usuario solo saluda ("Hola"), responde brevemente. Si hace una pregunta compleja, explayate lo necesario pero sin relleno.
 
       PREGUNTA DEL USUARIO:
-      ${message}
+      ${mensaje}
     `;
 
         try {
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`,
+            const respuesta = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${this.modelo}:generateContent?key=${this.claveAPI}`,
                 {
                     method: "POST",
                     headers: {
@@ -58,30 +58,30 @@ export class GeminiService {
                     body: JSON.stringify({
                         contents: [
                             {
-                                parts: [{ text: finalPrompt }],
+                                parts: [{ text: promptFinal }],
                             },
                         ],
                     }),
                 }
             );
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error.message || "Error en Gemini API");
+            if (!respuesta.ok) {
+                const datosError = await respuesta.json();
+                throw new Error(datosError.error.message || "Error en Gemini API");
             }
 
-            const data = await response.json();
-            const answer = data.candidates[0].content.parts[0].text;
+            const datos = await respuesta.json();
+            const contestacion = datos.candidates[0].content.parts[0].text;
 
-            this.history.push({ role: "user", text: message });
-            this.history.push({ role: "model", text: answer });
+            this.historial.push({ role: "user", text: mensaje });
+            this.historial.push({ role: "model", text: contestacion });
 
-            return answer;
+            return contestacion;
         } catch (error) {
-            console.error("Gemini Error:", error);
+            console.error("Error de Gemini:", error);
             throw error;
         }
     }
 }
 
-export const aiService = new GeminiService();
+export const servicioIA = new ServicioGemini();

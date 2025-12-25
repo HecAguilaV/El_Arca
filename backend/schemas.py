@@ -68,3 +68,8 @@ class Nota(NotaBase):
 
     class Config:
         from_attributes = True
+
+# --- ESQUEMAS: CONSULTAS IA ---
+
+class ConsultaBase(BaseModel):
+    pregunta: str

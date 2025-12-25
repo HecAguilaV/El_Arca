@@ -2,7 +2,7 @@
     import { fade, scale } from "svelte/transition";
     import { createEventDispatcher } from "svelte";
 
-    export let isLight = false;
+    export let esClaro = false;
 
     const dispatch = createEventDispatcher();
     let nombre = "";
@@ -22,7 +22,7 @@
     transition:fade
 >
     <div
-        class="w-full max-w-md p-10 rounded-xl shadow-2xl relative overflow-hidden transition-colors duration-300 {isLight
+        class="w-full max-w-md p-10 rounded-xl shadow-2xl relative overflow-hidden transition-colors duration-300 {esClaro
             ? 'bg-[#fafaf9] text-stone-800'
             : 'bg-[#18181e] text-stone-200'}"
         transition:scale={{ start: 0.95 }}
@@ -48,7 +48,7 @@
                     bind:value={nombre}
                     on:keydown={manejarTecla}
                     placeholder="Nombre del Investigador"
-                    class="w-full px-4 py-4 text-center bg-transparent border-b border-stone-700/30 focus:border-indigo-600 outline-none transition-all font-bold text-lg uppercase tracking-widest {isLight
+                    class="w-full px-4 py-4 text-center bg-transparent border-b border-stone-700/30 focus:border-indigo-600 outline-none transition-all font-bold text-lg uppercase tracking-widest {esClaro
                         ? 'placeholder-stone-300'
                         : 'placeholder-stone-800'}"
                     autoFocus
@@ -58,7 +58,7 @@
             <button
                 on:click={manejarEnvio}
                 disabled={!nombre.trim()}
-                class="w-full py-4 px-6 border {isLight
+                class="w-full py-4 px-6 border {esClaro
                     ? 'border-stone-800 text-stone-800 hover:bg-stone-800 hover:text-white'
                     : 'border-white/20 text-white hover:bg-white hover:text-black'} text-[10px] uppercase font-bold tracking-[0.3em] transition-all disabled:opacity-20 disabled:cursor-not-allowed"
             >

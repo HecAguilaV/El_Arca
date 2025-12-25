@@ -1,11 +1,11 @@
 <script>
     import { onMount, tick } from "svelte";
-    import { aiService } from "../lib/gemini";
+    import { api } from "../lib/api";
     import { fade, slide } from "svelte/transition";
     import toast from "svelte-french-toast";
 
-    export let isLight = false;
-    export let userName = "Estudiante";
+    export let esClaro = false;
+    export let nombreUsuario = "Estudiante";
 
     let mensajes = [];
     let entradaUsuario = "";
@@ -30,15 +30,7 @@
         const historial = localStorage.getItem("arca_historial_chat");
         if (historial) mensajes = JSON.parse(historial);
 
-        if (!aiService.apiKey) {
-            mensajes = [
-                ...mensajes,
-                {
-                    rol: "sistema",
-                    texto: "Configuración pendiente: La clave de API no ha sido detectada correctamente.",
-                },
-            ];
-        }
+        if (historial) mensajes = JSON.parse(historial);
     });
 
     async function desplazarAlFinal() {
@@ -51,11 +43,6 @@
     async function enviarMensaje() {
         if (!entradaUsuario.trim() || cargandoRespuesta) return;
 
-        if (!aiService.apiKey) {
-            toast.error("Falta configuración de API");
-            return;
-        }
-
         const texto = entradaUsuario;
         entradaUsuario = "";
         cargandoRespuesta = true;
@@ -64,12 +51,8 @@
         desplazarAlFinal();
 
         try {
-            const respuesta = await aiService.sendMessage(
-                texto,
-                especialistaActual,
-                "",
-                userName,
-            );
+            const data = await api.asistente.preguntar(texto);
+            const respuesta = data.respuesta;
 
             mensajes = [...mensajes, { rol: "modelo", texto: respuesta }];
             guardarHistorial();
@@ -100,20 +83,27 @@
     }
 
     function cambiarEspecialista(p) {
-        aiService.setPersona(p);
         especialistaActual = p;
         mostrarConfiguracion = false;
         toast.success(`Modo: ${etiquetasEspecialistas[p]}`);
     }
 
-    $: claseFondo = isLight ? "bg-white" : "bg-[#0f0f13]";
-    $: claseCabecera = isLight
+    function manejarTeclas(e) {
+        // Enviar con Enter, permitir salto con Shift+Enter
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            enviarMensaje();
+        }
+    }
+
+    $: claseFondo = esClaro ? "bg-white" : "bg-[#0f0f13]";
+    $: claseCabecera = esClaro
         ? "border-stone-200 bg-stone-50"
         : "border-white/5 bg-[#14141a]";
-    $: claseTextoBurbujaIA = isLight
+    $: claseTextoBurbujaIA = esClaro
         ? "bg-stone-100 text-stone-800 border-stone-200"
         : "bg-[#18181e] text-stone-200 border-white/5";
-    $: claseTextoBurbujaUser = isLight
+    $: claseTextoBurbujaUser = esClaro
         ? "bg-indigo-600 text-white border-indigo-700"
         : "bg-[#1e1e28] text-indigo-100 border-indigo-500/10";
 </script>
@@ -129,7 +119,7 @@
                 >Consultoría</span
             >
             <h2
-                class="text-sm font-bold {isLight
+                class="text-sm font-bold {esClaro
                     ? 'text-stone-800'
                     : 'text-stone-200'}"
             >
@@ -156,7 +146,7 @@
     {#if mostrarConfiguracion}
         <div
             transition:slide
-            class="border-b p-6 {isLight ? 'bg-stone-50' : 'bg-[#1a1a20]'}"
+            class="border-b p-6 {esClaro ? 'bg-stone-50' : 'bg-[#1a1a20]'}"
         >
             <h3
                 class="text-[9px] uppercase font-bold tracking-widest mb-4 opacity-40"
@@ -207,7 +197,7 @@
                     class="text-[9px] uppercase font-bold tracking-widest opacity-20 mb-2"
                 >
                     {msg.rol === "usuario"
-                        ? userName
+                        ? nombreUsuario
                         : etiquetasEspecialistas[especialistaActual]}
                 </span>
                 <div
@@ -225,7 +215,7 @@
             <div class="flex flex-col items-start" in:fade>
                 <span
                     class="text-[9px] uppercase font-bold tracking-widest opacity-20 mb-2 animate-pulse"
-                    >Procesando Respuesta...</span
+                    >Pensando...</span
                 >
                 <div class="px-5 py-3 border {claseTextoBurbujaIA} opacity-50">
                     <span class="text-[10px] tracking-widest animate-pulse"
@@ -239,21 +229,22 @@
     <!-- Entrada -->
     <div class="p-6 border-t {claseCabecera}">
         <div
-            class="relative flex flex-col border {isLight
+            class="relative flex flex-col border {esClaro
                 ? 'bg-white border-stone-200'
                 : 'bg-black/20 border-white/10'} rounded-lg"
         >
             <textarea
                 bind:value={entradaUsuario}
+                on:keydown={manejarTeclas}
                 placeholder="Introduzca su consulta o pasaje a analizar..."
                 rows="3"
-                class="w-full bg-transparent text-sm p-4 outline-none resize-none {isLight
+                class="w-full bg-transparent text-sm p-4 outline-none resize-none {esClaro
                     ? 'text-stone-800'
                     : 'text-stone-200'}"
             ></textarea>
 
             <div
-                class="flex justify-between items-center p-3 border-t {isLight
+                class="flex justify-between items-center p-3 border-t {esClaro
                     ? 'border-stone-100'
                     : 'border-white/5'}"
             >

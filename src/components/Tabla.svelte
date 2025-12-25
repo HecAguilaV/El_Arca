@@ -1,6 +1,7 @@
 <script>
-    export let data = [];
-    export let isLight = false;
+    import { archivoAbierto } from "../lib/stores";
+    export let datos = [];
+    export let esClaro = false;
 
     let busqueda = "";
 
@@ -17,7 +18,7 @@
         }
     }
 
-    $: datosFiltrados = data
+    $: datosFiltrados = datos
         .filter((item) => {
             if (!busqueda) return true;
             const termino = busqueda.toLowerCase();
@@ -57,37 +58,37 @@
         typeof window !== "undefined" &&
         window.location.hostname.includes("vercel.app");
 
-    function manejarClickArchivo(e) {
-        if (esWeb) {
-            e.preventDefault();
-            alert(
-                "Acceso remoto: Por seguridad y rendimiento en web, utilice el botón de Nube para abrir archivos desde Google Drive.",
-            );
-        }
+    function manejarClickArchivo(e, fila) {
+        e.preventDefault();
+        archivoAbierto.set({
+            ruta: fila.ruta,
+            nombre: fila.titulo || fila.nombre_archivo,
+            formato: fila.formato,
+        });
     }
 
     // Clases Dinámicas
-    $: claseContenedor = isLight
+    $: claseContenedor = esClaro
         ? "bg-[#fafaf9] border-stone-300"
         : "bg-white/5 border-white/10";
-    $: claseBusqueda = isLight
+    $: claseBusqueda = esClaro
         ? "bg-stone-200 border-stone-300"
         : "bg-black/20 border-white/10";
-    $: claseInput = isLight
+    $: claseInput = esClaro
         ? "text-stone-800 placeholder-stone-500"
         : "text-white placeholder-slate-500";
-    $: claseCabecera = isLight
+    $: claseCabecera = esClaro
         ? "bg-stone-100 border-b border-stone-200"
         : "bg-[#1a1a20]";
-    $: claseTextoCabecera = isLight
+    $: claseTextoCabecera = esClaro
         ? "text-stone-600 hover:text-stone-800"
         : "text-slate-400 hover:text-white";
-    $: claseFilaHover = isLight
+    $: claseFilaHover = esClaro
         ? "hover:bg-stone-100"
         : "hover:bg-white/[0.02]";
-    $: claseTextoPrincipal = isLight ? "text-stone-900" : "text-slate-200";
-    $: claseTextoSecundario = isLight ? "text-stone-500" : "text-slate-500";
-    $: claseBordeDivision = isLight ? "divide-stone-200" : "divide-white/5";
+    $: claseTextoPrincipal = esClaro ? "text-stone-900" : "text-slate-200";
+    $: claseTextoSecundario = esClaro ? "text-stone-500" : "text-slate-500";
+    $: claseBordeDivision = esClaro ? "divide-stone-200" : "divide-white/5";
 </script>
 
 <div
@@ -159,8 +160,7 @@
                         <td class="p-4">
                             <a
                                 href="/library/{fila.ruta}"
-                                target="_blank"
-                                on:click={manejarClickArchivo}
+                                on:click={(e) => manejarClickArchivo(e, fila)}
                                 class="block group/link"
                             >
                                 <div

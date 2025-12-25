@@ -13,3 +13,4 @@ psycopg2-binary
 chromadb
 pydantic-settings
 pydantic
+google-generativeai

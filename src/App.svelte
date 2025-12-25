@@ -6,22 +6,28 @@
     usuario,
     pestañaActiva,
     biblioteca,
+    librosFisicos,
+    archivoAbierto,
     cargando,
     cargarTodo,
   } from "./lib/stores";
 
   // Componentes
-  import Stats from "./components/Stats.svelte";
-  import Table from "./components/Table.svelte";
-  import Notebook from "./components/Notebook.svelte";
-  import AiAssistant from "./components/AiAssistant.svelte";
-  import BibleWidget from "./components/BibleWidget.svelte";
-  import ArcaLogo from "./components/ArcaLogo.svelte";
-  import WelcomeModal from "./components/WelcomeModal.svelte";
+  import Estadisticas from "./components/Estadisticas.svelte";
+  import Tabla from "./components/Tabla.svelte";
+  import Cuaderno from "./components/Cuaderno.svelte";
+  import AsistenteIA from "./components/AsistenteIA.svelte";
+  import WidgetBiblia from "./components/WidgetBiblia.svelte";
+  import LogoArca from "./components/ArcaLogo.svelte";
+  import ModalBienvenida from "./components/ModalBienvenida.svelte";
+  import Diccionario from "./components/Diccionario.svelte";
+  import Lector from "./components/Lector.svelte";
+  import BibliotecaFisica from "./components/BibliotecaFisica.svelte";
 
   // Estado Local
   let mostrarBienvenida = false;
-  let subPestañaDerecha = "notas"; // 'notas', 'asistente', 'biblia'
+  let subPestañaIzquierda = "digital"; // 'digital', 'fisica'
+  let subPestañaDerecha = "notas"; // 'notas', 'asistente', 'biblia', 'diccionario'
   let tiempoActual = new Date();
   let intervaloTiempo;
 
@@ -125,7 +131,10 @@
   }
 
   // Clases Reactivas basadas en el tema
-  $: esClaro = $tema === "claro";
+  $: horaActual = tiempoActual.getHours();
+  $: esDeDia = horaActual >= 7 && horaActual < 19;
+  $: esClaro = $tema === "claro" || ($tema === "auto" && esDeDia);
+
   $: claseFondo = esClaro ? "bg-[#e7e5e4]" : "bg-[#0f0f13]";
   $: claseTexto = esClaro ? "text-stone-800" : "text-slate-200";
   $: claseSubTexto = esClaro ? "text-stone-500" : "text-slate-400";
@@ -143,33 +152,36 @@
   >
     <!-- CABECERA -->
     <header
-      class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 flex-shrink-0"
+      class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6 flex-shrink-0"
     >
-      <div
-        class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-start"
-      >
-        <div class="flex items-center gap-3">
-          <ArcaLogo
-            size="w-10 h-10"
+      <div class="flex items-center gap-6">
+        <!-- Restauración del Logo Original Sobrio -->
+        <div class="flex items-center gap-4">
+          <LogoArca
+            size="w-12 h-12"
             color={esClaro ? "text-indigo-900" : "text-white"}
           />
-          <div>
+          <div class="flex flex-col border-l {claseBorde} pl-6 py-1">
             <h1
-              class="text-2xl md:text-3xl font-bold tracking-tight leading-none {esClaro
+              class="text-2xl font-black tracking-tighter leading-none {esClaro
                 ? 'text-indigo-950'
                 : 'text-white'}"
             >
               El Arca
             </h1>
             <span
-              class="text-[10px] md:text-xs uppercase tracking-widest {claseSubTexto}"
+              class="text-[9px] uppercase tracking-[0.3em] opacity-40 font-bold mt-1"
             >
-              Biblioteca Digital {$usuario ? `— ${$usuario}` : ""}
+              Estudiante: {$usuario || "Invitado"}
             </span>
           </div>
         </div>
+      </div>
 
-        <!-- Navegación Móvil -->
+      <!-- Navegación Móvil y Widgets -->
+      <div
+        class="flex items-center gap-4 md:gap-6 ml-auto md:ml-0 w-full md:w-auto justify-end"
+      >
         <nav
           class="flex md:hidden p-1 rounded-xl border {claseBorde} {esClaro
             ? 'bg-white/50'
@@ -277,15 +289,56 @@
             >
           </div>
         {:else}
-          <div class="flex-shrink-0">
-            <Stats data={$biblioteca} isLight={esClaro} />
+          <div class="flex-shrink-0 flex flex-col gap-4">
+            <!-- Selector de Biblioteca -->
+            <nav
+              class="flex p-1 rounded-xl border {claseBorde} {claseTarjeta} self-start"
+            >
+              <button
+                on:click={() => (subPestañaIzquierda = "digital")}
+                class="px-5 py-2 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaIzquierda ===
+                'digital'
+                  ? esClaro
+                    ? 'bg-indigo-100 text-indigo-900'
+                    : 'bg-white/10 text-white'
+                  : 'opacity-40 hover:opacity-100'}"
+              >
+                Digital
+              </button>
+              <button
+                on:click={() => (subPestañaIzquierda = "fisica")}
+                class="px-5 py-2 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaIzquierda ===
+                'fisica'
+                  ? esClaro
+                    ? 'bg-indigo-100 text-indigo-900'
+                    : 'bg-white/10 text-white'
+                  : 'opacity-40 hover:opacity-100'}"
+              >
+                Física
+              </button>
+            </nav>
+            <Estadisticas
+              datos={subPestañaIzquierda === "digital"
+                ? $biblioteca
+                : $librosFisicos}
+              {esClaro}
+            />
           </div>
           <div
             class="flex-1 overflow-hidden rounded-xl border {claseBorde} {esClaro
               ? 'bg-white shadow-sm'
-              : 'bg-black/10 backdrop-blur-sm'}"
+              : 'bg-black/10 backdrop-blur-sm'} relative"
           >
-            <Table data={$biblioteca} isLight={esClaro} />
+            {#if subPestañaIzquierda === "digital"}
+              {#if $archivoAbierto}
+                <div class="absolute inset-0 z-20">
+                  <Lector {esClaro} />
+                </div>
+              {/if}
+              <Tabla datos={$biblioteca} {esClaro} />
+            {:else}
+              <BibliotecaFisica {esClaro} />
+            {/if}
           </div>
         {/if}
       </div>
@@ -333,6 +386,17 @@
           >
             Biblia
           </button>
+          <button
+            on:click={() => (subPestañaDerecha = "diccionario")}
+            class="px-5 py-2 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+            'diccionario'
+              ? esClaro
+                ? 'bg-indigo-100 text-indigo-900'
+                : 'bg-white/10 text-white'
+              : 'opacity-40 hover:opacity-100'}"
+          >
+            Diccionario
+          </button>
         </nav>
 
         <div
@@ -342,15 +406,19 @@
         >
           {#if subPestañaDerecha === "notas"}
             <div class="h-full w-full absolute inset-0 text-xs">
-              <Notebook isLight={esClaro} />
+              <Cuaderno {esClaro} />
             </div>
           {:else if subPestañaDerecha === "asistente"}
             <div class="h-full w-full absolute inset-0">
-              <AiAssistant isLight={esClaro} userName={$usuario} />
+              <AsistenteIA {esClaro} nombreUsuario={$usuario} />
             </div>
           {:else if subPestañaDerecha === "biblia"}
             <div class="h-full w-full absolute inset-0">
-              <BibleWidget isLight={esClaro} />
+              <WidgetBiblia {esClaro} />
+            </div>
+          {:else if subPestañaDerecha === "diccionario"}
+            <div class="h-full w-full absolute inset-0">
+              <Diccionario {esClaro} />
             </div>
           {/if}
         </div>
@@ -367,14 +435,14 @@
       <div
         class="text-[10px] font-bold tracking-widest mt-1 uppercase cursor-default"
       >
-        &gt; Un Soñador con Poca Ram 👨🏻‍💻
+        >Un Soñador con Poca Ram 👨🏻‍💻
       </div>
     </footer>
   </div>
 </div>
 
 {#if mostrarBienvenida}
-  <WelcomeModal isLight={esClaro} on:save={manejarGuardadoUsuario} />
+  <ModalBienvenida {esClaro} on:save={manejarGuardadoUsuario} />
 {/if}
 <Toaster />
 

@@ -1,13 +1,27 @@
+# Parche de compatibilidad para Python 3.9
+try:
+    import importlib.metadata
+    if not hasattr(importlib.metadata, 'packages_distributions'):
+        import importlib_metadata
+        importlib.metadata.packages_distributions = importlib_metadata.packages_distributions
+except ImportError:
+    pass
+
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from typing import List, Optional
-import os
+# Cargar variables de entorno desde .env ANTES de importar servicios
+from dotenv import load_dotenv
+load_dotenv()
 
 from database import obtener_db, inicializar_base_de_datos
 import models
 import schemas
-from servicios import ServicioBiblioteca
+from servicio_biblioteca import ServicioBiblioteca
+from servicio_ia import servicio_ia
+from servicio_vectorial import ServicioVectorial
 
 app = FastAPI(
     title="El Arca API",
@@ -24,9 +38,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Montar archivos estáticos de la biblioteca
+RUTA_BIBLIOTECA = os.path.abspath(os.getenv("LIBRARY_PATH", "../public/library"))
+if os.path.exists(RUTA_BIBLIOTECA):
+    app.mount("/library", StaticFiles(directory=RUTA_BIBLIOTECA), name="library")
+else:
+    print(f"⚠️ RUTA DE BIBLIOTECA NO ENCONTRADA: {RUTA_BIBLIOTECA}")
+
 # Inicializar DB al arranque (crear tablas si no existen)
 @app.on_event("startup")
-def startup_event():
+def evento_inicio():
     inicializar_base_de_datos()
 
 @app.get("/", tags=["Estado"])
@@ -47,7 +68,12 @@ def listar_libros_digitales(db: Session = Depends(obtener_db)):
 def escanear_biblioteca(background_tasks: BackgroundTasks, db: Session = Depends(obtener_db)):
     LIBRARY_PATH = os.getenv("LIBRARY_PATH", "../public/library")
     background_tasks.add_task(ServicioBiblioteca.escanear_directorio, db, LIBRARY_PATH)
-    return {"mensaje": "Escaneo iniciado en segundo plano."}
+    return {"mensaje": "Escaneo local iniciado en segundo plano."}
+
+@app.post("/libros/digitales/sincronizar-drive", tags=["Biblioteca Digital"])
+def sincronizar_drive(background_tasks: BackgroundTasks, db: Session = Depends(obtener_db)):
+    background_tasks.add_task(ServicioBiblioteca.sincronizar_con_drive, db)
+    return {"mensaje": "Sincronización con Google Drive iniciada en segundo plano."}
 
 # --- ENDPOINTS: LIBROS FÍSICOS ---
 
@@ -57,7 +83,7 @@ def listar_libros_fisicos(db: Session = Depends(obtener_db)):
 
 @app.get("/libros/fisicos/isbn/{isbn}", tags=["Biblioteca Física"])
 def buscar_libro_por_isbn(isbn: str):
-    from servicios import ServicioFisico
+    from servicio_biblioteca import ServicioFisico
     datos = ServicioFisico.buscar_por_isbn(isbn)
     if not datos:
         raise HTTPException(status_code=404, detail="No se encontraron datos para este ISBN")
@@ -96,4 +122,61 @@ def actualizar_nota(nota_id: int, nota_actualizada: schemas.NotaCrear, db: Sessi
     
     db.commit()
     db.refresh(db_nota)
-    return db_nota
+@app.delete("/notas/{nota_id}", tags=["Cuaderno"])
+def eliminar_nota(nota_id: int, db: Session = Depends(obtener_db)):
+    db_nota = db.query(models.Nota).filter(models.Nota.id == nota_id).first()
+    if not db_nota:
+        raise HTTPException(status_code=404, detail="Nota no encontrada")
+    db.delete(db_nota)
+    db.commit()
+    return {"mensaje": "Nota eliminada correctamente"}
+
+# --- ENDPOINTS: DICCIONARIO TEOLÓGICO ---
+
+@app.get("/diccionario/{termino}", tags=["Diccionario"])
+def consultar_diccionario(termino: str, perspectiva: Optional[str] = "reformado"):
+    definicion = servicio_ia.definir_termino(termino, perspectiva)
+    return {"termino": termino, "definicion": definicion}
+
+# --- ENDPOINTS: ASISTENTE IA (RAG) ---
+
+servicio_vectorial = ServicioVectorial()
+
+@app.post("/preguntar", tags=["Asistente IA"])
+def preguntar_a_biblioteca(consulta: schemas.ConsultaBase):
+    # 1. Buscar fragmentos relevantes
+    contexto = ""
+    try:
+        resultados = servicio_vectorial.buscar_similitud(consulta.pregunta)
+        if resultados and "documents" in resultados and resultados["documents"]:
+            contexto = "\n".join(resultados["documents"][0])
+    except Exception as e:
+        print(f"Error en búsqueda vectorial: {e}")
+
+    # 2. Generar respuesta con Gemini
+    prompt = f"""
+    Eres 'El Arca AI', un asistente especializado en teología y biblia. 
+    Usa el siguiente contexto extraído de la biblioteca personal del usuario para responder a su pregunta.
+    Si el contexto no contiene la información, usa tu conocimiento general pero prioriza el contexto.
+
+    CONTEXTO:
+    {contexto}
+
+    PREGUNTA:
+    {consulta.pregunta}
+
+    Respuesta técnica, pastoral y profesional en español:
+    """
+    
+    if not hasattr(servicio_ia, 'model') or servicio_ia.model is None:
+        raise HTTPException(
+            status_code=503, 
+            detail="El servicio de IA no está configurado o la API Key es inválida."
+        )
+
+    try:
+        respuesta = servicio_ia.model.generate_content(prompt)
+        return {"respuesta": respuesta.text, "fuentes": resultados.get("metadatas", []) if contexto else []}
+    except Exception as e:
+        logger.error(f"Error generando contenido con Gemini: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al procesar la respuesta de la IA.")

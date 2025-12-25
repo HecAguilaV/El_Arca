@@ -27,6 +27,7 @@ export const api = {
     libros: {
         listar: () => peticion("/libros/digitales"),
         escanear: () => peticion("/libros/digitales/escanear", { method: "POST" }),
+        sincronizarDrive: () => peticion("/libros/digitales/sincronizar-drive", { method: "POST" }),
     },
 
     // Libros Físicos
@@ -41,5 +42,17 @@ export const api = {
         listar: () => peticion("/notas"),
         crear: (nota) => peticion("/notas", { method: "POST", body: JSON.stringify(nota) }),
         actualizar: (id, nota) => peticion(`/notas/${id}`, { method: "PUT", body: JSON.stringify(nota) }),
+        eliminar: (id) => peticion(`/notas/${id}`, { method: "DELETE" }),
+    },
+
+    // Diccionario Teológico
+    diccionario: {
+        consultar: (termino, perspectiva = "reformado") =>
+            peticion(`/diccionario/${encodeURIComponent(termino)}?perspectiva=${perspectiva}`),
+    },
+
+    // Asistente IA (RAG)
+    asistente: {
+        preguntar: (pregunta) => peticion("/preguntar", { method: "POST", body: JSON.stringify({ pregunta }) }),
     },
 };

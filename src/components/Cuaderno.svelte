@@ -1,5 +1,6 @@
 <script>
     import { onMount, onDestroy } from "svelte";
+    import { get } from "svelte/store";
     import { Editor } from "@tiptap/core";
     import StarterKit from "@tiptap/starter-kit";
     import { Table } from "@tiptap/extension-table";
@@ -13,7 +14,7 @@
     import { api } from "../lib/api";
     import { notas, cargando, sincronizarNotas } from "../lib/stores";
 
-    export let isLight = false;
+    export let esClaro = false;
 
     // Estado: 'lista' | 'editor'
     let vista = "lista";
@@ -22,9 +23,9 @@
     let elementoEditor;
 
     onMount(async () => {
-        // Los datos ya deberían estar cargados por el store global,
-        // pero podemos forzar una sincronización si es necesario.
-        if ($notas.length === 0) {
+        // Usamos get() explícito para evitar problemas de compatibilidad en el parser
+        const valorNotas = get(notas);
+        if (valorNotas.length === 0) {
             await sincronizarNotas();
         }
     });
@@ -67,6 +68,41 @@
         }
         vista = "lista";
         await sincronizarNotas();
+    }
+
+    async function eliminarNotaActual() {
+        if (
+            !confirm(
+                "¿Está seguro de que desea eliminar este estudio teológico? Esta acción no se puede deshacer.",
+            )
+        )
+            return;
+
+        try {
+            await api.notas.eliminar(notaActualId);
+            toast.success("Estudio eliminado");
+            if (instanciaEditor) {
+                instanciaEditor.destroy();
+                instanciaEditor = null;
+            }
+            vista = "lista";
+            await sincronizarNotas();
+        } catch (error) {
+            toast.error("Error al eliminar nota");
+        }
+    }
+
+    async function eliminarNotaDesdeLista(id, e) {
+        e.stopPropagation();
+        if (!confirm("¿Eliminar este estudio?")) return;
+
+        try {
+            await api.notas.eliminar(id);
+            toast.success("Eliminado");
+            await sincronizarNotas();
+        } catch (error) {
+            toast.error("Error al eliminar");
+        }
     }
 
     let tiempoGuardado;
@@ -115,6 +151,7 @@
                         "El estudio de la verdad requiere diligencia. Use H1 para el título.",
                 }),
                 CharacterCount,
+                // STARTER KIT ya incluye BulletList y ListItem
             ],
             content: nota.contenido_html,
             onUpdate: ({ editor }) => {
@@ -134,19 +171,89 @@
     }
 
     function imprimirPDF() {
-        window.print();
+        if (!instanciaEditor) return;
+
+        const contenidoHTML = instanciaEditor.getHTML();
+
+        // Crear un iframe invisible
+        const iframe = document.createElement("iframe");
+        iframe.style.position = "absolute";
+        iframe.style.width = "0";
+        iframe.style.height = "0";
+        iframe.style.border = "none";
+
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(`
+            <html>
+            <head>
+                <title>Imprimir Estudio</title>
+                <style>
+                    body {
+                        font-family: 'Georgia', serif;
+                        font-size: 12pt;
+                        line-height: 1.5;
+                        color: #000;
+                        margin: 2.5cm; /* Márgenes de hoja */
+                        background: white;
+                    }
+                    h1 {
+                        font-family: sans-serif;
+                        font-size: 24pt;
+                        border-bottom: 2px solid #000;
+                        margin-bottom: 20px;
+                        padding-bottom: 10px;
+                    }
+                    h2 {
+                        font-family: sans-serif;
+                        font-size: 18pt;
+                        margin-top: 20px;
+                        margin-bottom: 10px;
+                    }
+                    p, li {
+                        text-align: justify;
+                        margin-bottom: 10px;
+                    }
+                    ul, ol {
+                        padding-left: 20px;
+                    }
+                    /* Asegurar que las imágenes no se salgan */
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                    }
+                </style>
+            </head>
+            <body>
+                ${contenidoHTML}
+            </body>
+            </html>
+        `);
+        doc.close();
+
+        // Esperar a que cargue y llamar a imprimir
+        iframe.contentWindow.focus();
+        setTimeout(() => {
+            iframe.contentWindow.print();
+            // Eliminar el iframe después de imprimir (darle tiempo al diálogo)
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 500);
+        }, 250);
     }
 
-    $: claseContenedor = isLight
+    $: claseContenedor = esClaro
         ? "bg-white border-stone-200"
         : "bg-white/5 border-white/10";
-    $: claseToolbar = isLight
+    $: claseToolbar = esClaro
         ? "bg-stone-50 border-stone-200"
         : "bg-black/20 border-white/10";
-    $: claseTarjeta = isLight
+    $: claseTarjeta = esClaro
         ? "bg-white border-stone-200 hover:border-indigo-300"
         : "bg-[#1a1a20] border-white/5 hover:border-indigo-500/30";
-    $: claseBotonBarra = isLight
+    $: claseBotonBarra = esClaro
         ? "text-stone-500 hover:bg-stone-100"
         : "text-slate-400 hover:bg-white/10";
 </script>
@@ -165,14 +272,14 @@
                         Mis Estudios
                     </h2>
                     <span
-                        class="text-2xl font-bold {isLight
+                        class="text-2xl font-bold {esClaro
                             ? 'text-stone-900'
                             : 'text-white'}">Cuaderno Teológico</span
                     >
                 </div>
                 <button
                     on:click={crearNuevaNota}
-                    class="px-6 py-2 border {isLight
+                    class="px-6 py-2 border {esClaro
                         ? 'border-stone-800 text-stone-900'
                         : 'border-white/40 text-white'} text-[10px] uppercase font-bold tracking-widest hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all"
                 >
@@ -184,9 +291,9 @@
                 class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pb-10"
             >
                 {#each $notas as nota (nota.id)}
-                    <button
+                    <div
+                        class="{claseTarjeta} text-left p-6 border transition-all flex flex-col h-48 group cursor-pointer"
                         on:click={() => abrirNota(nota.id)}
-                        class="{claseTarjeta} text-left p-6 border transition-all flex flex-col h-48 group"
                     >
                         <span
                             class="text-[9px] uppercase font-bold tracking-widest opacity-30 mb-2"
@@ -196,18 +303,30 @@
                             ).toLocaleDateString()}
                         </span>
                         <h3
-                            class="font-bold text-lg mb-3 line-clamp-2 {isLight
+                            class="font-bold text-lg mb-3 line-clamp-2 {esClaro
                                 ? 'text-stone-800'
                                 : 'text-stone-100'} group-hover:text-indigo-500 transition-colors"
                         >
                             {nota.titulo}
                         </h3>
                         <p
-                            class="text-[11px] leading-relaxed opacity-50 line-clamp-3"
+                            class="text-[11px] leading-relaxed opacity-50 line-clamp-3 mb-4"
                         >
                             {nota.previsualización}
                         </p>
-                    </button>
+
+                        <div
+                            class="mt-auto flex justify-end opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                            <button
+                                on:click|stopPropagation={(e) =>
+                                    eliminarNotaDesdeLista(nota.id, e)}
+                                class="text-[9px] uppercase font-bold tracking-widest text-red-400/60 hover:text-red-400 transition-colors p-2"
+                            >
+                                Eliminar
+                            </button>
+                        </div>
+                    </div>
                 {/each}
 
                 {#if $notas.length === 0 && !$cargando}
@@ -224,13 +343,13 @@
         <div class="flex flex-col h-full">
             <!-- Barra de Herramientas -->
             <div
-                class="flex gap-2 p-3 border-b items-center overflow-x-auto whitespace-nowrap scrollbar-hide flex-shrink-0 {claseToolbar}"
+                class="flex gap-2 p-3 border-b items-center flex-wrap flex-shrink-0 {claseToolbar}"
             >
                 <button
                     on:click={cerrarEditor}
                     class="px-4 py-2 text-[10px] uppercase font-bold tracking-widest {claseBotonBarra} border-r border-white/10 mr-2"
                 >
-                    Cerrar
+                    Volver
                 </button>
 
                 {#if instanciaEditor}
@@ -338,16 +457,23 @@
 
                     <button
                         on:click={imprimirPDF}
-                        class="px-4 py-2 text-[10px] uppercase font-bold tracking-widest {claseBotonBarra}"
+                        class="px-4 py-2 text-[10px] uppercase font-bold tracking-widest {claseBotonBarra} border-l border-white/10 ml-2"
                     >
                         Exportar PDF
+                    </button>
+
+                    <button
+                        on:click={eliminarNotaActual}
+                        class="px-4 py-2 text-[10px] uppercase font-bold tracking-widest text-red-400 hover:bg-red-500/10 transition-colors"
+                    >
+                        Eliminar
                     </button>
                 {/if}
             </div>
 
             <!-- Área de Escritura -->
             <div
-                class="flex-1 overflow-y-auto cursor-text outline-none {isLight
+                class="flex-1 overflow-y-auto cursor-text outline-none {esClaro
                     ? 'prose-stone'
                     : 'prose-invert'}"
                 on:click={() => instanciaEditor?.commands.focus()}
@@ -369,7 +495,7 @@
 </div>
 
 <style>
-    /* Estilos del Editor */
+    /* Estilos del Editor en Pantalla */
     :global(.ProseMirror) {
         min-height: 100%;
         outline: none;
@@ -387,104 +513,69 @@
         line-height: 1.8 !important;
     }
 
-    /* MEDIA PRINT: EXPORTACIÓN PROFESIONAL A PDF */
+    /* VISTA EN PANTALLA: Ocultar área de impresión */
+    @media screen {
+        .area-impresion {
+            display: none;
+        }
+    }
+
+    /* VISTA EN IMPRESIÓN: Usar SOLO el área de impresión */
     @media print {
         @page {
-            margin: 2cm;
+            margin: 2.5cm;
             size: A4;
         }
 
-        /* 1. Reset Global - Ocultamos todo lo que no sea el área de impresión */
-        :global(body),
-        :global(#app),
-        :global(main),
-        :global(.min-h-screen) {
-            background: white !important;
-            visibility: hidden !important;
-            margin: 0 !important;
-            padding: 0 !important;
+        /* 1. Ocultar TODO lo de la aplicación original */
+        :global(body > *),
+        :global(#app > *) {
+            display: none !important;
+        }
+
+        /* 2. Asegurar que html y body sean blancos y visibles */
+        :global(html),
+        :global(body) {
+            background-color: white !important;
+            visibility: visible !important;
             overflow: visible !important;
             height: auto !important;
         }
 
-        /* 2. Mostrar solo el contenedor específico de la nota */
-        :global(.notebook-container) {
-            visibility: visible !important;
+        /* 3. Mostrar y estilizar el ÁREA DE IMPRESIÓN DEDICADA */
+        .area-impresion {
             display: block !important;
             position: absolute !important;
-            left: 0 !important;
             top: 0 !important;
+            left: 0 !important;
             width: 100% !important;
-            height: auto !important;
-            border: 0 none !important; /* Forzamos eliminación total de bordes */
-            outline: none !important;
-            box-shadow: none !important;
-            background: white !important;
-            color: black !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
+            z-index: 99999;
+            background-color: white !important;
         }
 
-        :global(.notebook-container *) {
-            visibility: visible !important;
+        /* 4. Estilos Editoriales Limpios (sin Tailwind prose classes) */
+        .area-impresion :global(h1) {
+            font-family: sans-serif;
+            font-size: 24pt;
+            border-bottom: 2px solid black;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            color: black;
         }
 
-        /* 3. Limpieza de elementos de interfaz */
-        .border-b,
-        .border-t,
-        button,
-        span.uppercase,
-        .flex-none,
-        .flex-shrink-0 {
-            display: none !important;
-            height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
+        .area-impresion :global(p),
+        .area-impresion :global(li) {
+            font-family: "Georgia", serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: black;
+            text-align: justify;
+            margin-bottom: 1rem;
         }
 
-        /* 4. Formato Editorial para el Texto (Georgia/Serif) */
-        :global(.ProseMirror) {
-            padding: 0 !important;
-            margin: 0 !important;
-            color: black !important;
-            font-family: serif !important; /* Fallback universal */
-            font-size: 12pt !important;
-            line-height: 1.6 !important;
-            text-align: justify !important;
-            border: none !important;
-            box-shadow: none !important;
-        }
-
-        :global(.ProseMirror h1) {
-            font-family: sans-serif !important;
-            font-size: 24pt !important;
-            font-weight: bold !important;
-            color: black !important;
-            border-bottom: 2pt solid #000 !important;
-            padding-bottom: 8pt !important;
-            margin-bottom: 15pt !important;
-            margin-top: 0 !important;
-        }
-
-        :global(.ProseMirror h2) {
-            font-family: sans-serif !important;
-            font-size: 18pt !important;
-            margin-top: 15pt !important;
-            margin-bottom: 8pt !important;
-            color: #333 !important;
-        }
-
-        /* Asegurar tablas limpias */
-        :global(.ProseMirror table) {
-            border-collapse: collapse !important;
-            border: 1pt solid black !important;
-            margin: 10pt 0 !important;
-        }
-        :global(.ProseMirror td),
-        :global(.ProseMirror th) {
-            border: 1pt solid black !important;
-            padding: 4pt !important;
+        .area-impresion :global(ul) {
+            list-style-type: disc;
+            padding-left: 1.5rem;
         }
     }
 </style>

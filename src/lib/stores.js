@@ -10,6 +10,7 @@ export const pestañaActiva = writable("biblioteca"); // 'biblioteca', 'notas', 
 export const biblioteca = writable([]);
 export const librosFisicos = writable([]);
 export const notas = writable([]);
+export const archivoAbierto = writable(null); // { id, ruta, nombre, formato }
 export const cargando = writable(false);
 
 // --- ACCIONES CENTRALIZADAS ---

@@ -15,7 +15,13 @@ class ServicioIA:
         else:
             try:
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+                # Intentamos usar la versión 2.5 solicitada por el usuario
+                try:
+                    self.model = genai.GenerativeModel('gemini-2.5-flash')
+                    logger.info("Modelo configurado: gemini-2.5-flash")
+                except Exception:
+                    logger.warning("gemini-2.5-flash no disponible, usando fallback a 2.0-flash-exp")
+                    self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
             except Exception as e:
                 logger.error(f"Error inicializando Gemini: {e}")
                 self.model = None

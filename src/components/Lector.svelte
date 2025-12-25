@@ -52,33 +52,34 @@
         </div>
 
         <!-- Visor -->
-        <div class="flex-1 w-full bg-white relative">
-            {#if $archivoAbierto.formato === ".pdf"}
+        <div class="flex-1 w-full bg-white relative overflow-hidden">
+            <!-- Permitimos PDF y GDoc (que el backend convertirá a PDF) -->
+            {#if $archivoAbierto.formato === ".pdf" || $archivoAbierto.formato === "gdoc"}
                 <iframe
-                    src="{urlArchivo}#toolbar=0"
+                    src={urlArchivo}
                     title="Visor PDF"
-                    class="w-full h-full border-none"
+                    class="w-full h-full border-none block"
+                    allowfullscreen
                 ></iframe>
             {:else}
                 <div
-                    class="h-full flex flex-col items-center justify-center p-10 text-center"
+                    class="h-full flex flex-col items-center justify-center p-6 text-center"
                 >
-                    <div
-                        class="text-[40px] font-serif mb-4 italic text-stone-300"
-                    >
-                        Formato No Soportado
+                    <div class="text-2xl font-serif mb-3 italic text-stone-300">
+                        Formato No Visualizable
                     </div>
                     <p
-                        class="text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-6"
+                        class="text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-6 max-w-[250px]"
                     >
-                        El visor integrado solo admite archivos PDF actualmente.
+                        El archivo "{$archivoAbierto.formato}" no se puede
+                        previsualizar aquí.
                     </p>
                     <a
                         href={urlArchivo}
                         download
-                        class="px-6 py-2 bg-indigo-600 text-white text-[11px] uppercase font-bold tracking-widest rounded-lg hover:bg-indigo-700 transition-all"
+                        class="px-5 py-2 bg-indigo-600 text-white text-[10px] uppercase font-bold tracking-widest rounded-lg hover:bg-indigo-700 transition-all"
                     >
-                        Descargar Manualmente
+                        Descargar Archivo
                     </a>
                 </div>
             {/if}

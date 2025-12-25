@@ -69,11 +69,28 @@ class ServicioDrive:
             return []
 
     def descargar_archivo(self, file_id):
-        """Descarga un archivo a memoria para su procesamiento."""
+        """Descarga un archivo a memoria. Si es Google Doc, lo exporta a PDF."""
         if not self.service: return None
         
         try:
-            request = self.service.files().get_media(fileId=file_id)
+            # 1. Obtener metadatos para saber el tipo MIME
+            meta = self.service.files().get(fileId=file_id, fields="mimeType").execute()
+            mime_type = meta.get('mimeType', '')
+            
+            request = None
+            
+            # 2. Si es documento nativo de Google, EXPORTAMOS a PDF
+            if mime_type.startswith('application/vnd.google-apps'):
+                logger.info(f"Exportando Google Doc {file_id} a PDF...")
+                request = self.service.files().export_media(
+                    fileId=file_id, 
+                    mimeType='application/pdf'
+                )
+            else:
+                # 3. Si es binario (PDF, imagenes), DESCARGAMOS directo
+                logger.info(f"Descargando binario {file_id}...")
+                request = self.service.files().get_media(fileId=file_id)
+
             fh = io.BytesIO()
             downloader = MediaIoBaseDownload(fh, request)
             done = False

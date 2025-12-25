@@ -22,8 +22,11 @@
     CloudArrowUp,
   } from "phosphor-svelte";
 
-  // Importar música local
-  import ambientMusic from "./assets/ambient.mp3";
+  const DRIVE_URL =
+    import.meta.env.VITE_GOOGLE_DRIVE_URL || "https://drive.google.com";
+
+  // Música local (referencia directa a public/)
+  const ambientMusic = "/ambient.mp3";
 
   let data = [];
   let loading = true;
@@ -267,6 +270,17 @@
 
       <!-- Widgets -->
       <div class="flex items-center gap-4 md:gap-6">
+        <!-- Cloud Drive Widget -->
+        <a
+          href={DRIVE_URL}
+          target="_blank"
+          class="group flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-sm font-mono transition-all border {borderClass} {cardClass} {hoverClass} text-indigo-500"
+          title="Abrir Nube (Google Drive)"
+        >
+          <CloudArrowUp size={18} weight="duotone" />
+          <span class="hidden md:inline font-bold">Nube</span>
+        </a>
+
         <!-- Theme Toggle Widget (NEW) -->
         <button
           on:click={toggleTheme}
@@ -492,10 +506,12 @@
   </div>
 </div>
 
+<!-- 
 <BackendDiagnostics
   isOpen={showDiagnostics}
   onClose={() => (showDiagnostics = false)}
-/>
+/> 
+-->
 {#if showWelcomeModal}
   <WelcomeModal {isLight} on:save={handleWelcomeSave} />
 {/if}

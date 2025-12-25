@@ -16,7 +16,7 @@
     let bibleId = null;
     let bibleName = "Cargando Biblia...";
     let passageContent = "";
-    let passageReference = "Salmos 23"; // Default
+    let passageReference = "PSA.23"; // Default (Salmos 23)
 
     // Estado de Búsqueda
     let searchTerm = "";

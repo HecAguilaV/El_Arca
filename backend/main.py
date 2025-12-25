@@ -10,6 +10,7 @@ except ImportError:
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
@@ -76,6 +77,24 @@ def escanear_biblioteca(background_tasks: BackgroundTasks, db: Session = Depends
 def sincronizar_drive(background_tasks: BackgroundTasks, db: Session = Depends(obtener_db)):
     background_tasks.add_task(ServicioBiblioteca.sincronizar_con_drive, db)
     return {"mensaje": "Sincronización con Google Drive iniciada en segundo plano."}
+
+@app.get("/libros/ver/{file_id}", tags=["Biblioteca Digital"])
+def ver_libro_drive(file_id: str):
+    """Proxy para visualizar archivos directamente desde Google Drive sin hacerlos públicos."""
+    from servicio_drive import servicio_drive
+    
+    stream = servicio_drive.descargar_archivo(file_id)
+    if not stream:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado o inaccesible en Drive.")
+    
+    # Determinamos MIME type básico (asumimos PDF por defecto para el visor)
+    media_type = "application/pdf"
+    
+    return StreamingResponse(
+        stream, 
+        media_type=media_type,
+        headers={"Content-Disposition": "inline; filename=documento.pdf"}
+    )
 
 # --- ENDPOINTS: LIBROS FÍSICOS ---
 

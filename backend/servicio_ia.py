@@ -15,7 +15,7 @@ class ServicioIA:
         else:
             try:
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel('gemini-1.5-flash-latest')
+                self.model = genai.GenerativeModel('gemini-1.5-flash')
             except Exception as e:
                 logger.error(f"Error inicializando Gemini: {e}")
                 self.model = None

@@ -11,7 +11,7 @@
     }
 
     $: urlArchivo = $archivoAbierto
-        ? `${API_BASE_URL}/library/${$archivoAbierto.ruta}`
+        ? `${API_BASE_URL}/libros/ver/${$archivoAbierto.ruta}`
         : "";
     $: claseContenedor = esClaro ? "bg-stone-200" : "bg-black/40";
 </script>

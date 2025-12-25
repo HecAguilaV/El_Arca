@@ -1,62 +1,42 @@
 <script>
-    import iconBook from "../assets/icons/book.svg";
-    import iconPdf from "../assets/icons/file-pdf.svg";
-    import iconPpt from "../assets/icons/presentation.svg";
-    import iconFile from "../assets/icons/files.svg";
-
     export let data = [];
     export let isLight = false;
 
-    let searchTerm = "";
+    let busqueda = "";
 
-    // Sorting State
-    let sortField = "filename"; // 'filename' | 'category' | 'page_count'
-    let sortDirection = "asc"; // 'asc' | 'desc'
+    // Estado de Ordenación
+    let campoOrden = "nombre_archivo";
+    let direccionOrden = "asc";
 
-    function toggleSort(field) {
-        if (sortField === field) {
-            sortDirection = sortDirection === "asc" ? "desc" : "asc";
+    function alternarOrden(campo) {
+        if (campoOrden === campo) {
+            direccionOrden = direccionOrden === "asc" ? "desc" : "asc";
         } else {
-            sortField = field;
-            sortDirection = "asc";
+            campoOrden = campo;
+            direccionOrden = "asc";
         }
     }
 
-    export function applyExternalFilter(type, value) {
-        // Mapeo simple: si es categoría, usamos setCategoryFilter
-        // Si es tag, lo ponemos en el buscador o lógica especial
-        if (type === "category") {
-            searchTerm = value;
-        } else if (type === "tag") {
-            searchTerm = value;
-        } else if (type === "format") {
-            // Hack: poner formato en búsqueda
-            searchTerm = value;
-        } else if (type === "author") {
-            searchTerm = value;
-        }
-    }
-
-    function setCategoryFilter(category) {
-        searchTerm = category;
-    }
-
-    $: filteredData = data
+    $: datosFiltrados = data
         .filter((item) => {
-            if (!searchTerm) return true;
-            const term = searchTerm.toLowerCase();
+            if (!busqueda) return true;
+            const termino = busqueda.toLowerCase();
             return (
-                item.filename.toLowerCase().includes(term) ||
-                (item.tags && item.tags.toLowerCase().includes(term)) ||
-                item.category.toLowerCase().includes(term)
+                (item.nombre_archivo &&
+                    item.nombre_archivo.toLowerCase().includes(termino)) ||
+                (item.titulo && item.titulo.toLowerCase().includes(termino)) ||
+                (item.autor && item.autor.toLowerCase().includes(termino)) ||
+                (item.etiquetas &&
+                    item.etiquetas.toLowerCase().includes(termino)) ||
+                (item.categoria &&
+                    item.categoria.toLowerCase().includes(termino))
             );
         })
         .sort((a, b) => {
-            let valA = a[sortField];
-            let valB = b[sortField];
+            let valA = a[campoOrden] || "";
+            let valB = b[campoOrden] || "";
 
-            // Handle numeric sorting for pages
-            if (sortField === "page_count") {
+            if (campoOrden === "num_paginas" || campoOrden === "tamano_bytes") {
                 valA = Number(valA) || 0;
                 valB = Number(valB) || 0;
             } else {
@@ -64,198 +44,162 @@
                 valB = valB.toString().toLowerCase();
             }
 
-            if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-            if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+            if (valA < valB) return direccionOrden === "asc" ? -1 : 1;
+            if (valA > valB) return direccionOrden === "asc" ? 1 : -1;
             return 0;
         });
 
-    function getIcon(format) {
-        if (format === "fisico") return iconBook;
-        if (format === "pptx" || format === "ppt") return iconPpt;
-        if (format === "pdf" || format === "epub") return iconPdf;
-        return iconFile;
+    function copiarRuta(ruta) {
+        navigator.clipboard.writeText(ruta);
     }
 
-    function copyPath(path) {
-        navigator.clipboard.writeText(path);
-    }
-
-    // Detectar si estamos en Vercel/Web (no local)
-    const isWeb =
+    const esWeb =
         typeof window !== "undefined" &&
         window.location.hostname.includes("vercel.app");
 
-    function handleFileClick(e) {
-        if (isWeb) {
+    function manejarClickArchivo(e) {
+        if (esWeb) {
             e.preventDefault();
-            // Importar toast dinámicamente o asumiendo que está disponible si se pasa al componente,
-            // pero para ser seguros usaremos alert o un toast global si es fácil.
-            // Como no tenemos toast importado aquí, usaremos alert simple o nada.
-            // Mejor: Despachar evento o usar la prop 'isWeb' para condicional.
             alert(
-                "⚠️ Estás en la versión Web.\n\nLos archivos grandes no se alojan aquí por velocidad.\nUsa el botón 'Nube' (Cloud) en el menú superior para acceder a los archivos en Google Drive.",
+                "Acceso remoto: Por seguridad y rendimiento en web, utilice el botón de Nube para abrir archivos desde Google Drive.",
             );
         }
     }
 
-    // Dynamic Classes
-    $: containerClass = isLight
+    // Clases Dinámicas
+    $: claseContenedor = isLight
         ? "bg-[#fafaf9] border-stone-300"
         : "bg-white/5 border-white/10";
-
-    $: searchBarClass = isLight
+    $: claseBusqueda = isLight
         ? "bg-stone-200 border-stone-300"
         : "bg-black/20 border-white/10";
-    $: searchInputClass = isLight
+    $: claseInput = isLight
         ? "text-stone-800 placeholder-stone-500"
         : "text-white placeholder-slate-500";
-    $: theadClass = isLight
+    $: claseCabecera = isLight
         ? "bg-stone-100 border-b border-stone-200"
         : "bg-[#1a1a20]";
-    $: thTextClass = isLight
+    $: claseTextoCabecera = isLight
         ? "text-stone-600 hover:text-stone-800"
         : "text-slate-400 hover:text-white";
-    $: rowHoverClass = isLight ? "hover:bg-stone-100" : "hover:bg-white/[0.02]";
-    $: textMainClass = isLight ? "text-stone-900" : "text-slate-200";
-    $: textSubClass = isLight ? "text-stone-500" : "text-slate-500";
-    $: borderDivideClass = isLight ? "divide-stone-200" : "divide-white/5";
+    $: claseFilaHover = isLight
+        ? "hover:bg-stone-100"
+        : "hover:bg-white/[0.02]";
+    $: claseTextoPrincipal = isLight ? "text-stone-900" : "text-slate-200";
+    $: claseTextoSecundario = isLight ? "text-stone-500" : "text-slate-500";
+    $: claseBordeDivision = isLight ? "divide-stone-200" : "divide-white/5";
 </script>
 
 <div
-    class="{containerClass} border rounded-xl overflow-hidden backdrop-blur-md flex flex-col h-[600px] transition-colors duration-500"
+    class="{claseContenedor} border rounded-xl overflow-hidden backdrop-blur-md flex flex-col h-full transition-colors duration-500"
 >
-    <!-- Search Bar -->
-    <div
-        class="p-4 border-b {searchBarClass} flex items-center gap-4 transition-colors"
-    >
-        <div class="w-5 h-5 opacity-50 flex items-center justify-center">
-            🔍
-        </div>
+    <!-- Barra de Búsqueda -->
+    <div class="p-4 border-b {claseBusqueda} flex items-center gap-4">
+        <span class="text-[10px] uppercase font-bold tracking-widest opacity-40"
+            >Buscar</span
+        >
         <input
             type="text"
-            bind:value={searchTerm}
-            placeholder="Buscar por nombre, autor, teología..."
-            class="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-sm {searchInputClass}"
+            bind:value={busqueda}
+            placeholder="Título, autor, categoría o etiquetas..."
+            class="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-sm {claseInput}"
         />
         <div
-            class="bg-white/10 px-3 py-1 rounded-full text-xs opacity-70 font-medium"
+            class="hidden sm:block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest bg-black/10 opacity-50"
         >
-            {filteredData.length} resultados
+            {datosFiltrados.length} entradas
         </div>
     </div>
 
-    <!-- Table Wrapper -->
+    <!-- Contenedor de Tabla -->
     <div class="overflow-auto flex-1">
         <table class="w-full text-left border-collapse">
-            <thead
-                class="sticky top-0 z-10 shadow-sm {theadClass} transition-colors"
-            >
+            <thead class="sticky top-0 z-10 shadow-sm {claseCabecera}">
                 <tr>
                     <th
-                        class="p-4 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none group {thTextClass}"
-                        on:click={() => toggleSort("filename")}
+                        class="p-4 text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none group {claseTextoCabecera}"
+                        on:click={() => alternarOrden("nombre_archivo")}
                     >
-                        Archivo {sortField === "filename"
-                            ? sortDirection === "asc"
+                        Documento {campoOrden === "nombre_archivo"
+                            ? direccionOrden === "asc"
                                 ? "↑"
                                 : "↓"
                             : ""}
                     </th>
                     <th
-                        class="p-4 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none group {thTextClass}"
-                        on:click={() => toggleSort("category")}
+                        class="p-4 text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none group {claseTextoCabecera}"
+                        on:click={() => alternarOrden("categoria")}
                     >
-                        Categoría {sortField === "category"
-                            ? sortDirection === "asc"
+                        Categoría {campoOrden === "categoria"
+                            ? direccionOrden === "asc"
                                 ? "↑"
                                 : "↓"
                             : ""}
                     </th>
                     <th
-                        class="p-4 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none group {thTextClass}"
-                        on:click={() => toggleSort("page_count")}
+                        class="p-4 text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none group {claseTextoCabecera}"
+                        on:click={() => alternarOrden("num_paginas")}
                     >
-                        Páginas {sortField === "page_count"
-                            ? sortDirection === "asc"
+                        Páginas {campoOrden === "num_paginas"
+                            ? direccionOrden === "asc"
                                 ? "↑"
                                 : "↓"
                             : ""}
                     </th>
                     <th
-                        class="p-4 text-xs font-semibold uppercase tracking-wider {thTextClass}"
-                        >Etiquetas</th
+                        class="p-4 text-[10px] font-bold uppercase tracking-widest {claseTextoCabecera}"
                     >
+                        Etiquetas
+                    </th>
                 </tr>
             </thead>
-            <tbody class="divide-y {borderDivideClass}">
-                {#each filteredData.slice(0, 100) as row (row.md5_hash + row.path)}
-                    <tr class="{rowHoverClass} transition-colors group">
-                        <td class="p-4 flex items-center gap-3">
+            <tbody class="divide-y {claseBordeDivision}">
+                {#each datosFiltrados.slice(0, 200) as fila (fila.id || fila.hash_md5 + fila.ruta)}
+                    <tr class="{claseFilaHover} transition-colors group">
+                        <td class="p-4">
                             <a
-                                href="/library/{row.path
-                                    .split('\\')
-                                    .map(encodeURIComponent)
-                                    .join('/')}"
+                                href="/library/{fila.ruta}"
                                 target="_blank"
-                                on:click={handleFileClick}
-                                class="flex items-center gap-3 group/link w-full"
+                                on:click={manejarClickArchivo}
+                                class="block group/link"
                             >
-                                <img
-                                    src={getIcon(row.format)}
-                                    alt={row.format}
-                                    class="w-8 h-8 transition-all {isLight
-                                        ? 'opacity-80 sepia-[.3] hover:sepia-0'
-                                        : 'opacity-80 hover:opacity-100 brightness-110'}"
-                                />
-                                <div class="overflow-hidden">
-                                    <div
-                                        class="text-sm font-medium truncate group-hover/link:text-indigo-500 transition-colors {textMainClass}"
-                                        title={row.filename}
-                                    >
-                                        {row.filename}
-                                    </div>
-                                    <!-- Only show path if different from filename -->
-                                    {#if row.path !== row.filename}
-                                        <div
-                                            class="text-xs truncate font-mono mt-0.5 {textSubClass}"
-                                            title={row.path}
-                                        >
-                                            {row.path}
-                                        </div>
-                                    {/if}
+                                <div
+                                    class="text-sm font-medium {claseTextoPrincipal} group-hover/link:text-indigo-500 transition-colors"
+                                >
+                                    {fila.titulo || fila.nombre_archivo}
+                                </div>
+                                <div
+                                    class="text-[10px] uppercase tracking-wider mt-1 opacity-50 font-mono"
+                                >
+                                    {fila.formato} — {fila.autor ||
+                                        "Autor desconocido"}
                                 </div>
                             </a>
                         </td>
                         <td class="p-4">
-                            <button
-                                on:click={() => setCategoryFilter(row.category)}
-                                class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium border cursor-pointer transition-colors {isLight
-                                    ? 'bg-stone-200 text-stone-700 border-stone-300 hover:bg-stone-300'
-                                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}"
+                            <span
+                                class="text-[10px] uppercase font-bold tracking-widest opacity-70"
                             >
-                                {row.category}
-                            </button>
+                                {fila.categoria}
+                            </span>
                         </td>
-                        <td class="p-4 text-sm tabular-nums {textSubClass}">
-                            {row.page_count}
+                        <td
+                            class="p-4 text-xs font-mono {claseTextoSecundario}"
+                        >
+                            {fila.num_paginas || 0}
                         </td>
                         <td class="p-4">
                             <div class="flex flex-wrap gap-2">
-                                {#if row.tags}
-                                    {#each row.tags.split(", ") as tag}
-                                        {#if tag}
-                                            <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded text-xs transition-colors cursor-default {isLight
-                                                    ? 'text-stone-600 bg-stone-100 border border-stone-200'
-                                                    : 'text-slate-300 bg-white/10 hover:bg-white/20'}"
-                                            >
-                                                {tag}
-                                            </span>
-                                        {/if}
+                                {#if fila.etiquetas}
+                                    {#each fila.etiquetas.split(",") as etiqueta}
+                                        <span
+                                            class="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 border {claseBordeDivision} opacity-50"
+                                        >
+                                            {etiqueta.trim()}
+                                        </span>
                                     {/each}
                                 {:else}
-                                    <span class="{textSubClass} text-xs">-</span
-                                    >
+                                    <span class="opacity-20">—</span>
                                 {/if}
                             </div>
                         </td>
@@ -264,15 +208,21 @@
             </tbody>
         </table>
 
-        {#if filteredData.length > 100}
+        {#if datosFiltrados.length > 200}
             <div
-                class="p-4 text-center text-xs {textSubClass} border-t {isLight
-                    ? 'border-stone-200'
-                    : 'border-white/5'}"
+                class="p-6 text-center text-[10px] uppercase font-bold tracking-[0.2em] opacity-30"
             >
-                Mostrando los primeros 100 resultados para optimizar
-                rendimiento...
+                Paginación automática activa — Mostrando 200 de {datosFiltrados.length}
             </div>
         {/if}
     </div>
 </div>
+
+<style>
+    ::-webkit-scrollbar {
+        width: 3px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background-color: rgba(128, 128, 128, 0.3);
+    }
+</style>

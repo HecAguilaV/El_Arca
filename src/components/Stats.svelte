@@ -2,96 +2,106 @@
     export let data = [];
     export let isLight = false;
 
-    // Extraer todas las etiquetas y contarlas
-    $: tagCounts = data.reduce((acc, item) => {
-        if (item.tags) {
-            item.tags.split(", ").forEach((k) => {
-                if (k) acc[k] = (acc[k] || 0) + 1;
+    // Conteo de etiquetas
+    $: conteoEtiquetas = data.reduce((acc, item) => {
+        if (item.etiquetas) {
+            item.etiquetas.split(",").forEach((et) => {
+                const limpia = et.trim();
+                if (limpia) acc[limpia] = (acc[limpia] || 0) + 1;
             });
         }
         return acc;
     }, {});
 
-    $: sortedTags = Object.entries(tagCounts)
+    $: etiquetasOrdenadas = Object.entries(conteoEtiquetas)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 5); // Top 5
+        .slice(0, 5);
 
-    $: totalSeminary = data.filter((d) => d.category === "Seminario").length;
-    $: totalPhysical = data.filter((d) => d.format === "fisico").length;
-    $: totalSchool = data.filter(
-        (d) => d.category === "Escuela Dominical",
+    $: totalSeminario = data.filter((d) => d.categoria === "Seminario").length;
+    $: totalDigital = data.filter((d) => d.formato !== "físico").length;
+    $: totalEscuela = data.filter(
+        (d) => d.categoria === "Escuela Dominical",
     ).length;
 
-    // Clases dinámicas
-    $: cardClass = isLight
+    $: claseTarjeta = isLight
         ? "bg-[#fafaf9] border-stone-300 shadow-sm"
         : "bg-white/5 border-white/10";
-
-    $: labelClass = isLight ? "text-stone-500" : "text-slate-400";
-    $: textClass = isLight ? "text-stone-700" : "text-slate-300";
-    $: numberGradient = isLight
+    $: claseEtiqueta = isLight ? "text-stone-500" : "text-slate-400";
+    $: claseTexto = isLight ? "text-stone-700" : "text-slate-300";
+    $: gradienteNumero = isLight
         ? "from-stone-800 to-indigo-700"
         : "from-white to-indigo-300";
-    $: barBg = isLight ? "bg-stone-200" : "bg-white/10";
+    $: fondoBarra = isLight ? "bg-stone-200" : "bg-white/10";
 </script>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-    <!-- Card: Resumen General -->
+    <!-- Resumen -->
     <div
-        class="{cardClass} border rounded-xl p-6 transition-colors duration-500"
+        class="{claseTarjeta} border rounded-xl p-8 transition-colors duration-500"
     >
         <h3
-            class="text-xs uppercase tracking-widest {labelClass} mb-4 font-semibold"
+            class="text-[9px] uppercase tracking-[0.3em] {claseEtiqueta} mb-6 font-bold"
         >
-            Total Documentos
+            Acervo Total
         </h3>
         <p
-            class="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-br {numberGradient}"
+            class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-br {gradienteNumero}"
         >
             {data.length}
         </p>
-        <div class="flex flex-wrap gap-4 mt-4 text-sm {textClass}">
-            <div class="flex items-center gap-2">
-                <span class="opacity-80">📜</span>
-                {totalSeminary} Seminario
+        <div class="grid grid-cols-3 gap-4 mt-8">
+            <div class="flex flex-col">
+                <span
+                    class="text-[10px] uppercase font-bold tracking-widest opacity-40 mb-1"
+                    >Seminario</span
+                >
+                <span class="text-sm font-bold">{totalSeminario}</span>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="opacity-80">📖</span>
-                {totalPhysical} Físicos
+            <div class="flex flex-col">
+                <span
+                    class="text-[10px] uppercase font-bold tracking-widest opacity-40 mb-1"
+                    >Digital</span
+                >
+                <span class="text-sm font-bold">{totalDigital}</span>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="opacity-80">🎈</span>
-                {totalSchool} E. Dominical
+            <div class="flex flex-col">
+                <span
+                    class="text-[10px] uppercase font-bold tracking-widest opacity-40 mb-1"
+                    >E. Dominical</span
+                >
+                <span class="text-sm font-bold">{totalEscuela}</span>
             </div>
         </div>
     </div>
 
-    <!-- Card: Top Tags -->
+    <!-- Tendencias -->
     <div
-        class="{cardClass} border rounded-xl p-6 transition-colors duration-500"
+        class="{claseTarjeta} border rounded-xl p-8 transition-colors duration-500"
     >
         <h3
-            class="text-xs uppercase tracking-widest {labelClass} mb-4 font-semibold"
+            class="text-[9px] uppercase tracking-[0.3em] {claseEtiqueta} mb-6 font-bold"
         >
-            Tendencia de Contenido
+            Ejes Temáticos
         </h3>
-        <div class="space-y-3">
-            {#each sortedTags as [key, count]}
-                <div class="flex items-center gap-3 group">
-                    <span class="w-24 text-sm {textClass} shrink-0 truncate"
-                        >{key}</span
+        <div class="space-y-4">
+            {#each etiquetasOrdenadas as [nombre, total]}
+                <div class="flex items-center gap-4 group">
+                    <span
+                        class="w-28 text-[11px] uppercase font-bold tracking-widest {claseTexto} shrink-0 truncate"
+                        >{nombre}</span
                     >
                     <div
-                        class="flex-1 h-2 {barBg} rounded-full overflow-hidden"
+                        class="flex-1 h-1.5 {fondoBarra} rounded-full overflow-hidden"
                     >
                         <div
-                            class="h-full bg-indigo-500 rounded-full transition-all duration-500 group-hover:bg-indigo-400"
-                            style="width: {(count / sortedTags[0][1]) * 100}%"
+                            class="h-full bg-indigo-500 transition-all duration-700 group-hover:bg-indigo-400"
+                            style="width: {(total / etiquetasOrdenadas[0][1]) *
+                                100}%"
                         ></div>
                     </div>
                     <span
-                        class="w-8 text-right text-xs opacity-60 font-mono {textClass}"
-                        >{count}</span
+                        class="w-8 text-right text-[10px] font-mono opacity-50"
+                        >{total}</span
                     >
                 </div>
             {/each}

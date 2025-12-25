@@ -1,224 +1,176 @@
 <script>
     import { onMount, tick } from "svelte";
     import { aiService } from "../lib/gemini";
-    import { scale, fade, slide } from "svelte/transition";
+    import { fade, slide } from "svelte/transition";
     import toast from "svelte-french-toast";
-    import {
-        PaperPlaneRight,
-        ChalkboardTeacher,
-        User,
-        Trash,
-        WarningCircle,
-        ChatCircleText,
-    } from "phosphor-svelte";
 
-    // ... (previous imports)
-
-    export let isLight = false; // Prop recibida desde App.svelte
+    export let isLight = false;
     export let userName = "Estudiante";
 
-    let messages = [];
-    let userInput = "";
-    let isLoading = false;
-    let chatContainer;
-    let currentPersona = "reformado"; // Default persona
-    let showConfig = false;
+    let mensajes = [];
+    let entradaUsuario = "";
+    let cargandoRespuesta = false;
+    let contenedorChat;
+    let especialistaActual = "reformado";
+    let mostrarConfiguracion = false;
 
-    // Mapa de nombres bonitos para la UI
-    const personaLabels = {
-        reformado: "Teólogo Reformado",
-        puritano: "Puritano Clásico",
-        bautista: "Bautista (1689)",
-        pentecostal: "Pentecostal",
-        neopuritano: "Neopuritano",
-        bautista_moderno: "Bautista Moderno",
-        academico: "Erudito Bíblico",
-        pastoral: "Consejero Pastoral",
-        neofito: "Mentor Básico",
+    const etiquetasEspecialistas = {
+        reformado: "Perspectiva Reformada",
+        puritano: "Tradición Puritana",
+        bautista: "Confesionalidad 1689",
+        pentecostal: "Perspectiva Pentecostal",
+        neopuritano: "Neo-Puritanismo",
+        bautista_moderno: "Bautismo Moderno",
+        academico: "Erudición Académica",
+        pastoral: "Consejería Pastoral",
+        neofito: "Inducción Básica",
     };
 
-    // Cargar historial
     onMount(() => {
-        const saved = localStorage.getItem("arca_chat_history");
-        if (saved) messages = JSON.parse(saved);
+        const historial = localStorage.getItem("arca_historial_chat");
+        if (historial) mensajes = JSON.parse(historial);
 
-        // Verificar API Key al inicio (silencioso)
         if (!aiService.apiKey) {
-            messages = [
-                ...messages,
+            mensajes = [
+                ...mensajes,
                 {
-                    role: "system",
-                    text: "⚠️ El sistema de IA no está configurado. Contacte al administrador.",
+                    rol: "sistema",
+                    texto: "Configuración pendiente: La clave de API no ha sido detectada correctamente.",
                 },
             ];
         }
     });
 
-    async function scrollToBottom() {
+    async function desplazarAlFinal() {
         await tick();
-        if (chatContainer) {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+        if (contenedorChat) {
+            contenedorChat.scrollTop = contenedorChat.scrollHeight;
         }
     }
 
-    async function sendMessage() {
-        if (!userInput.trim() || isLoading) return;
+    async function enviarMensaje() {
+        if (!entradaUsuario.trim() || cargandoRespuesta) return;
 
         if (!aiService.apiKey) {
-            toast.error("Error de Configuración: API Key no encontrada.", {
-                style: "background: #1e1e24; color: #fff; border: 1px solid #ef4444;",
-            });
+            toast.error("Falta configuración de API");
             return;
         }
 
-        const text = userInput;
-        userInput = ""; // Limpiar input inmediatamente
-        isLoading = true;
+        const texto = entradaUsuario;
+        entradaUsuario = "";
+        cargandoRespuesta = true;
 
-        // Usuario
-        messages = [...messages, { role: "user", text }];
-        scrollToBottom();
+        mensajes = [...mensajes, { rol: "usuario", texto }];
+        desplazarAlFinal();
 
         try {
-            // LLamada a Gemini con la persona seleccionada Y el nombre
-            const response = await aiService.sendMessage(
-                userInput,
-                currentPersona,
+            const respuesta = await aiService.sendMessage(
+                texto,
+                especialistaActual,
                 "",
                 userName,
             );
 
-            // Respuesta IA
-            messages = [...messages, { role: "model", text: response }];
-            saveHistory();
+            mensajes = [...mensajes, { rol: "modelo", texto: respuesta }];
+            guardarHistorial();
         } catch (error) {
-            console.error(error);
-            messages = [
-                ...messages,
+            mensajes = [
+                ...mensajes,
                 {
-                    role: "error",
-                    text: "Lo siento, hubo un error al conectar con el servicio de teología. Por favor revisa tu conexión.",
+                    rol: "error",
+                    texto: "Se produjo una interrupción en la consulta teológica. Verifique su conexión.",
                 },
             ];
         } finally {
-            isLoading = false;
-            scrollToBottom();
+            cargandoRespuesta = false;
+            desplazarAlFinal();
         }
     }
 
-    function saveHistory() {
-        localStorage.setItem("arca_chat_history", JSON.stringify(messages));
+    function guardarHistorial() {
+        localStorage.setItem("arca_historial_chat", JSON.stringify(mensajes));
     }
 
-    function clearHistory() {
-        if (confirm("¿Borrar toda la conversación?")) {
-            messages = [];
-            localStorage.removeItem("arca_chat_history");
-            toast.success("Historial borrado");
+    function borrarHistorial() {
+        if (confirm("¿Desea eliminar el hilo actual de conversación?")) {
+            mensajes = [];
+            localStorage.removeItem("arca_historial_chat");
+            toast.success("Conversación finalizada");
         }
     }
 
-    function handleKeydown(e) {
-        // Permitir Enter normal para salto de línea, NO enviar.
-        return;
-    }
-
-    // ... (inside div wrapper) ...
-    function setPersona(p) {
+    function cambiarEspecialista(p) {
         aiService.setPersona(p);
-        toast.success(`Modo: ${personaLabels[p]}`);
-        showConfig = false;
+        especialistaActual = p;
+        mostrarConfiguracion = false;
+        toast.success(`Modo: ${etiquetasEspecialistas[p]}`);
     }
+
+    $: claseFondo = isLight ? "bg-white" : "bg-[#0f0f13]";
+    $: claseCabecera = isLight
+        ? "border-stone-200 bg-stone-50"
+        : "border-white/5 bg-[#14141a]";
+    $: claseTextoBurbujaIA = isLight
+        ? "bg-stone-100 text-stone-800 border-stone-200"
+        : "bg-[#18181e] text-stone-200 border-white/5";
+    $: claseTextoBurbujaUser = isLight
+        ? "bg-indigo-600 text-white border-indigo-700"
+        : "bg-[#1e1e28] text-indigo-100 border-indigo-500/10";
 </script>
 
 <div
-    class="flex flex-col h-full {isLight
-        ? 'bg-white'
-        : 'bg-[#0f0f13]'} relative overflow-hidden transition-colors duration-500"
+    class="flex flex-col h-full {claseFondo} relative overflow-hidden transition-colors duration-500"
 >
-    <!-- Header del Chat -->
-    <div
-        class="flex items-center justify-between p-4 border-b {isLight
-            ? 'border-slate-200 bg-slate-50'
-            : 'border-white/5 bg-[#14141a]'}"
-    >
-        <div class="flex items-center gap-3">
-            <!-- Icon Container -->
-            <div
-                class="w-10 h-10 rounded-lg flex items-center justify-center border {isLight
-                    ? 'bg-indigo-100 border-indigo-200'
-                    : 'bg-indigo-900/30 border-indigo-500/20'}"
+    <!-- Cabecera del Asistente -->
+    <div class="flex items-center justify-between p-4 border-b {claseCabecera}">
+        <div class="flex flex-col">
+            <span
+                class="text-[9px] uppercase font-bold tracking-[0.2em] opacity-40"
+                >Consultoría</span
             >
-                <ChalkboardTeacher
-                    size={24}
-                    class={isLight ? "text-indigo-700" : "text-indigo-400"}
-                />
-            </div>
-            <div>
-                <h2
-                    class="text-sm font-bold leading-tight {isLight
-                        ? 'text-slate-800'
-                        : 'text-slate-200'}"
-                >
-                    Asistente Teológico
-                </h2>
-                <!-- ... Status ... -->
-            </div>
+            <h2
+                class="text-sm font-bold {isLight
+                    ? 'text-stone-800'
+                    : 'text-stone-200'}"
+            >
+                Asistente Teológico
+            </h2>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex gap-4">
             <button
-                on:click={clearHistory}
-                class="p-2 rounded-lg transition-colors {isLight
-                    ? 'text-slate-400 hover:text-red-600 hover:bg-slate-200'
-                    : 'text-slate-500 hover:text-red-400 hover:bg-white/5'}"
-                title="Borrar Historial"
+                on:click={() => (mostrarConfiguracion = !mostrarConfiguracion)}
+                class="text-[10px] uppercase font-bold tracking-widest opacity-50 hover:opacity-100 transition-all"
             >
-                <Trash size={18} />
+                {etiquetasEspecialistas[especialistaActual]}
             </button>
             <button
-                on:click={() => (showConfig = !showConfig)}
-                class="p-2 rounded-lg transition-colors {isLight
-                    ? 'text-slate-400 hover:text-indigo-600 hover:bg-slate-200'
-                    : 'text-slate-500 hover:text-indigo-400 hover:bg-white/5'} {showConfig
-                    ? isLight
-                        ? 'text-indigo-600 bg-slate-200'
-                        : 'text-indigo-400 bg-white/5'
-                    : ''}"
-                title="Cambiar Especialista"
+                on:click={borrarHistorial}
+                class="text-[10px] uppercase font-bold tracking-widest text-red-500/60 hover:text-red-500 transition-all"
             >
-                <ChatCircleText size={18} />
+                Limpiar
             </button>
         </div>
     </div>
 
-    <!-- Configuración de Persona (Dropdown) -->
-    {#if showConfig}
+    {#if mostrarConfiguracion}
         <div
-            transition:slide={{ duration: 200 }}
-            class="border-b p-4 z-10 shadow-xl {isLight
-                ? 'bg-white border-slate-200'
-                : 'bg-[#1a1a20] border-white/5'}"
+            transition:slide
+            class="border-b p-6 {isLight ? 'bg-stone-50' : 'bg-[#1a1a20]'}"
         >
             <h3
-                class="text-xs font-bold uppercase tracking-widest mb-3 {isLight
-                    ? 'text-slate-500'
-                    : 'text-slate-400'}"
+                class="text-[9px] uppercase font-bold tracking-widest mb-4 opacity-40"
             >
-                Seleccionar Enfoque Teológico
+                Seleccionar Enfoque
             </h3>
-            <div class="grid grid-cols-2 gap-2">
-                {#each Object.entries(personaLabels) as [key, label]}
+            <div class="grid grid-cols-2 gap-3">
+                {#each Object.entries(etiquetasEspecialistas) as [key, label]}
                     <button
-                        on:click={() => setPersona(key)}
-                        class="text-left px-3 py-2 rounded-lg text-xs font-medium border transition-all
-                        {currentPersona === key
-                            ? isLight
-                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                                : 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300'
-                            : isLight
-                              ? 'border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                              : 'border-white/5 hover:bg-white/5 text-slate-400 hover:text-slate-200'}"
+                        on:click={() => cambiarEspecialista(key)}
+                        class="text-left px-4 py-2 text-[10px] uppercase font-bold border {especialistaActual ===
+                        key
+                            ? 'border-indigo-500 text-indigo-500'
+                            : 'border-transparent opacity-50 hover:opacity-100'} transition-all"
                     >
                         {label}
                     </button>
@@ -227,159 +179,94 @@
         </div>
     {/if}
 
-    <!-- Area de Mensajes -->
+    <!-- Mensajes -->
     <div
-        bind:this={chatContainer}
-        class="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth"
+        bind:this={contenedorChat}
+        class="flex-1 overflow-y-auto p-6 space-y-8 scroll-smooth"
     >
-        {#if messages.length === 0}
+        {#if mensajes.length === 0}
             <div
                 in:fade
-                class="h-full flex flex-col items-center justify-center text-center p-8 opacity-50"
+                class="h-full flex flex-col items-center justify-center text-center p-10 opacity-20"
             >
-                <ChalkboardTeacher
-                    size={48}
-                    class="{isLight ? 'text-slate-300' : 'text-slate-600'} mb-4"
-                />
-                <p
-                    class="{isLight
-                        ? 'text-slate-400'
-                        : 'text-slate-500'} text-sm max-w-[250px]"
+                <span
+                    class="text-[10px] uppercase font-bold tracking-[0.5em] max-w-[300px]"
                 >
-                    Hola. Soy tu asistente de investigación. ¿En qué tema
-                    teológico estás trabajando hoy?
-                </p>
+                    El diálogo teológico espera su consulta
+                </span>
             </div>
         {/if}
 
-        {#each messages as msg}
+        {#each mensajes as msg}
             <div
-                class="flex gap-4 {msg.role === 'user'
-                    ? 'flex-row-reverse'
-                    : ''}"
-                in:scale={{ duration: 200, start: 0.95 }}
+                class="flex flex-col {msg.rol === 'usuario'
+                    ? 'items-end'
+                    : 'items-start'}"
             >
-                <!-- Avatar -->
-                <div
-                    class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold shadow-lg
-          {msg.role === 'user'
-                        ? isLight
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-indigo-900/50 text-indigo-200 ring-1 ring-indigo-500/30'
-                        : msg.role === 'error'
-                          ? 'bg-red-500 text-white'
-                          : isLight
-                            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                            : 'bg-emerald-900/30 text-emerald-300 ring-1 ring-emerald-500/20'}"
+                <span
+                    class="text-[9px] uppercase font-bold tracking-widest opacity-20 mb-2"
                 >
-                    {#if msg.role === "user"}
-                        <User size={14} />
-                    {:else if msg.role === "error"}
-                        <WarningCircle size={14} />
-                    {:else}
-                        <ChalkboardTeacher size={14} />
-                    {/if}
-                </div>
-
-                <!-- Burbuja de Texto -->
+                    {msg.rol === "usuario"
+                        ? userName
+                        : etiquetasEspecialistas[especialistaActual]}
+                </span>
                 <div
-                    class="max-w-[85%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed shadow-sm
-          {msg.role === 'user'
-                        ? (isLight
-                              ? 'bg-indigo-600 text-white border-indigo-700'
-                              : 'bg-[#1e1e28] text-indigo-100/90 border-indigo-500/10') +
-                          ' rounded-tr-sm border'
-                        : msg.role === 'error'
-                          ? 'bg-red-50 border-red-200 text-red-700'
-                          : (isLight
-                                ? 'bg-white text-slate-700 border-slate-200'
-                                : 'bg-[#18181e] text-slate-300 border-white/5') +
-                            ' rounded-tl-sm border font-serif'}"
+                    class="max-w-[90%] md:max-w-[80%] px-5 py-4 border text-sm leading-relaxed {msg.rol ===
+                    'usuario'
+                        ? claseTextoBurbujaUser
+                        : claseTextoBurbujaIA}"
                 >
-                    {@html window.marked?.parse(msg.text) || msg.text}
+                    {@html window.marked?.parse(msg.texto) || msg.texto}
                 </div>
             </div>
         {/each}
 
-        <!-- Loading State -->
-        {#if isLoading}
-            <!-- ... (Adjust loading colors similarly) ... -->
-            <div class="flex gap-4" in:fade>
-                <div
-                    class="w-8 h-8 rounded-full flex items-center justify-center {isLight
-                        ? 'bg-emerald-50'
-                        : 'bg-emerald-900/30 ring-1 ring-emerald-500/20'}"
+        {#if cargandoRespuesta}
+            <div class="flex flex-col items-start" in:fade>
+                <span
+                    class="text-[9px] uppercase font-bold tracking-widest opacity-20 mb-2 animate-pulse"
+                    >Procesando Respuesta...</span
                 >
-                    <ChalkboardTeacher
-                        size={14}
-                        class="{isLight
-                            ? 'text-emerald-500'
-                            : 'text-emerald-300'} animate-pulse"
-                    />
-                </div>
-                <div
-                    class="px-4 py-3 rounded-2xl rounded-tl-sm flex gap-1 items-center border {isLight
-                        ? 'bg-white border-slate-200'
-                        : 'bg-[#18181e] border-white/5'}"
-                >
-                    <div
-                        class="w-1.5 h-1.5 {isLight
-                            ? 'bg-slate-400'
-                            : 'bg-slate-500'} rounded-full animate-bounce"
-                    ></div>
-                    <div
-                        class="w-1.5 h-1.5 {isLight
-                            ? 'bg-slate-400'
-                            : 'bg-slate-500'} rounded-full animate-bounce delay-75"
-                    ></div>
-                    <div
-                        class="w-1.5 h-1.5 {isLight
-                            ? 'bg-slate-400'
-                            : 'bg-slate-500'} rounded-full animate-bounce delay-150"
-                    ></div>
+                <div class="px-5 py-3 border {claseTextoBurbujaIA} opacity-50">
+                    <span class="text-[10px] tracking-widest animate-pulse"
+                        >...</span
+                    >
                 </div>
             </div>
         {/if}
     </div>
 
-    <!-- Input Area -->
-    <div
-        class="p-4 border-t {isLight
-            ? 'bg-slate-50 border-slate-200'
-            : 'bg-[#14141a] border-white/5'}"
-    >
+    <!-- Entrada -->
+    <div class="p-6 border-t {claseCabecera}">
         <div
-            class="relative flex flex-col border rounded-xl transition-all shadow-inner
-            {isLight
-                ? 'bg-white border-slate-200 focus-within:border-indigo-500 focus-within:ring-indigo-500/20'
-                : 'bg-[#0a0a0c] border-white/10 focus-within:border-indigo-500/50 focus-within:ring-indigo-500/20'}"
+            class="relative flex flex-col border {isLight
+                ? 'bg-white border-stone-200'
+                : 'bg-black/20 border-white/10'} rounded-lg"
         >
             <textarea
-                bind:value={userInput}
-                on:keydown={handleKeydown}
-                placeholder="Escribe tu consulta teológica aquí..."
+                bind:value={entradaUsuario}
+                placeholder="Introduzca su consulta o pasaje a analizar..."
                 rows="3"
-                class="w-full bg-transparent text-sm p-4 outline-none resize-none font-sans {isLight
-                    ? 'text-slate-700 placeholder:text-slate-400'
-                    : 'text-slate-200 placeholder:text-slate-600'}"
+                class="w-full bg-transparent text-sm p-4 outline-none resize-none {isLight
+                    ? 'text-stone-800'
+                    : 'text-stone-200'}"
             ></textarea>
 
-            <div class="flex justify-between items-center px-2 pb-2 mt-[-5px]">
+            <div
+                class="flex justify-between items-center p-3 border-t {isLight
+                    ? 'border-stone-100'
+                    : 'border-white/5'}"
+            >
                 <span
-                    class="text-[10px] ml-2 font-medium {isLight
-                        ? 'text-slate-400'
-                        : 'text-slate-600'}">Enter para nueva línea</span
+                    class="text-[9px] uppercase font-bold tracking-widest opacity-30 px-2 italic"
+                    >Reflexión Continua</span
                 >
                 <button
-                    on:click={sendMessage}
-                    class="p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center gap-2 pr-4 pl-3
-                    {isLight
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-900/20'}"
-                    disabled={!userInput.trim() || isLoading}
+                    on:click={enviarMensaje}
+                    class="px-5 py-2 text-[10px] uppercase font-bold tracking-[0.2em] bg-indigo-600 text-white hover:bg-indigo-700 transition-all disabled:opacity-30"
+                    disabled={!entradaUsuario.trim() || cargandoRespuesta}
                 >
-                    <span class="text-xs font-bold tracking-wide">ENVIAR</span>
-                    <PaperPlaneRight size={16} weight="fill" />
+                    Enviar
                 </button>
             </div>
         </div>

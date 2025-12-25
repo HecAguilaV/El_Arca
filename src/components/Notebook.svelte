@@ -7,148 +7,103 @@
     import { TableCell } from "@tiptap/extension-table-cell";
     import { TableHeader } from "@tiptap/extension-table-header";
     import Placeholder from "@tiptap/extension-placeholder";
-    import CharacterCount from "@tiptap/extension-character-count"; // Importar extensión
+    import CharacterCount from "@tiptap/extension-character-count";
     import toast from "svelte-french-toast";
-    import ConfirmModal from "./ConfirmModal.svelte";
 
-    export let isLight = false; // Fix: Recibir prop para tema dinámico
+    import { api } from "../lib/api";
+    import { notas, cargando, sincronizarNotas } from "../lib/stores";
 
-    // Estado: 'list' (Galería) | 'editor' (Edición)
-    let view = "list";
-    let notes = [];
-    let currentNoteId = null;
-    let editor;
-    let element;
+    export let isLight = false;
 
-    // Estado del Modal
-    let isModalOpen = false;
-    let noteToDeleteId = null;
+    // Estado: 'lista' | 'editor'
+    let vista = "lista";
+    let notaActualId = null;
+    let instanciaEditor;
+    let elementoEditor;
 
-    onMount(() => {
-        loadNotes();
+    onMount(async () => {
+        // Los datos ya deberían estar cargados por el store global,
+        // pero podemos forzar una sincronización si es necesario.
+        if ($notas.length === 0) {
+            await sincronizarNotas();
+        }
     });
 
-    function loadNotes() {
-        const saved = localStorage.getItem("arca_notes");
-        if (saved) {
-            notes = JSON.parse(saved).sort(
-                (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
-            );
-        } else {
-            // Migración de la versión anterior (si existe)
-            const oldContent = localStorage.getItem("arca_notebook_content");
-            if (oldContent) {
-                const newNote = createNoteObject("Nota Migrada", oldContent);
-                notes = [newNote];
-                saveNotes();
-                localStorage.removeItem("arca_notebook_content");
-            }
-        }
-    }
-
-    function saveNotes() {
-        localStorage.setItem("arca_notes", JSON.stringify(notes));
-    }
-
-    function createNoteObject(title, content) {
-        return {
-            id: Date.now().toString(),
-            title: title || "Sin Título",
-            content: content || "",
-            updatedAt: new Date().toISOString(),
-            preview: content ? extractPreview(content) : "Nueva nota...",
-        };
-    }
-
-    function extractPreview(html) {
+    function extraerPrevisualizacion(html) {
+        if (!html) return "Sin contenido...";
         const tmp = document.createElement("DIV");
         tmp.innerHTML = html;
         return tmp.textContent.substring(0, 100) + "...";
     }
 
-    // --- Acciones de Nota ---
-
-    function createNewNote() {
-        const newNote = createNoteObject("Nuevo Estudio", "");
-        notes = [newNote, ...notes];
-        saveNotes();
-        openNote(newNote.id);
-        toast.success("Nueva nota creada");
-    }
-
-    function openNote(id) {
-        currentNoteId = id;
-        view = "editor";
-        // El editor se inicializa reactivamente cuando 'view' cambia y el DOM se actualiza
-        setTimeout(() => initEditor(), 50);
-    }
-
-    function confirmDelete(e, id) {
-        e.stopPropagation();
-        noteToDeleteId = id;
-        isModalOpen = true;
-    }
-
-    function executeDelete() {
-        if (noteToDeleteId) {
-            notes = notes.filter((n) => n.id !== noteToDeleteId);
-            saveNotes();
-            toast.success("Nota eliminada correctamente", {
-                icon: "🗑️",
-                style: "background: #1e1e24; color: #fff; border: 1px solid #333;",
+    async function crearNuevaNota() {
+        try {
+            const nueva = await api.notas.crear({
+                titulo: "Nuevo Estudio Teológico",
+                contenido_html:
+                    "<h1>Título del Estudio</h1><p>Comience su investigación aquí...</p>",
+                previsualización: "Nuevo estudio...",
+                palabras_clave: "",
             });
+            await sincronizarNotas();
+            abrirNota(nueva.id);
+            toast.success("Estudio iniciado");
+        } catch (error) {
+            toast.error("Error al crear nota");
         }
-        isModalOpen = false;
-        noteToDeleteId = null;
     }
 
-    function cancelDelete() {
-        isModalOpen = false;
-        noteToDeleteId = null;
+    function abrirNota(id) {
+        notaActualId = id;
+        vista = "editor";
+        setTimeout(() => inicializarEditor(), 50);
     }
 
-    function closeEditor() {
-        if (editor) {
-            // Guardar última versión antes de salir
-            updateCurrentNote(editor.getHTML());
-            editor.destroy();
-            editor = null;
+    async function cerrarEditor() {
+        if (instanciaEditor) {
+            await guardarNotaActual(instanciaEditor.getHTML());
+            instanciaEditor.destroy();
+            instanciaEditor = null;
         }
-        view = "list";
-        loadNotes(); // Recargar para actualizar orden/previsualización
+        vista = "lista";
+        await sincronizarNotas();
     }
 
-    let saveTimeout;
+    let tiempoGuardado;
+    async function guardarNotaActual(contenido) {
+        const nota = $notas.find((n) => n.id === notaActualId);
+        if (!nota) return;
 
-    function updateCurrentNote(content) {
-        const noteIndex = notes.findIndex((n) => n.id === currentNoteId);
-        if (noteIndex !== -1) {
-            notes[noteIndex].content = content;
-            notes[noteIndex].updatedAt = new Date().toISOString();
-            notes[noteIndex].preview = extractPreview(content);
+        // Extraer primer H1 para el título dinámico
+        let titulo = nota.titulo;
+        const coincidenciaH1 = contenido.match(/<h1>(.*?)<\/h1>/);
+        if (coincidenciaH1 && coincidenciaH1[1]) {
+            titulo = coincidenciaH1[1].replace(/<[^>]*>/g, "");
+        }
 
-            // Extraer primer H1 como título
-            const match = content.match(/<h1>(.*?)<\/h1>/);
-            if (match && match[1]) {
-                notes[noteIndex].title = match[1].replace(/<[^>]*>/g, "");
+        const datosActualizados = {
+            titulo: titulo,
+            contenido_html: contenido,
+            previsualización: extraerPrevisualizacion(contenido),
+            palabras_clave: nota.palabras_clave,
+        };
+
+        clearTimeout(tiempoGuardado);
+        tiempoGuardado = setTimeout(async () => {
+            try {
+                await api.notas.actualizar(notaActualId, datosActualizados);
+            } catch (error) {
+                console.error("Error al auto-guardar:", error);
             }
-
-            // Debounce para guardar en LocalStorage (esperar 1s de inactividad)
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => {
-                saveNotes();
-            }, 1000);
-        }
+        }, 1500);
     }
 
-    // --- Configuración Tiptap ---
+    function inicializarEditor() {
+        const nota = $notas.find((n) => n.id === notaActualId);
+        if (!nota || !elementoEditor) return;
 
-    function initEditor() {
-        const note = notes.find((n) => n.id === currentNoteId);
-        if (!note || !element) return;
-
-        editor = new Editor({
-            element: element,
+        instanciaEditor = new Editor({
+            element: elementoEditor,
             extensions: [
                 StarterKit,
                 Table.configure({ resizable: true }),
@@ -157,551 +112,379 @@
                 TableCell,
                 Placeholder.configure({
                     placeholder:
-                        "Escribe aquí... Usa H1 para el título de la nota.",
+                        "El estudio de la verdad requiere diligencia. Use H1 para el título.",
                 }),
-                CharacterCount, // Agregar a extensiones
+                CharacterCount,
             ],
-            content: note.content || `<h1>${note.title}</h1><p></p>`,
+            content: nota.contenido_html,
             onUpdate: ({ editor }) => {
-                updateCurrentNote(editor.getHTML());
+                guardarNotaActual(editor.getHTML());
             },
             onTransaction: () => {
-                // Forzar actualización de Svelte para que los botones de la toolbar reaccionen
-                editor = editor;
+                instanciaEditor = instanciaEditor;
             },
             editorProps: {
                 attributes: {
-                    class: "prose prose-invert max-w-none focus:outline-none min-h-[500px] p-8 prose-li:marker:text-indigo-400 prose-ul:list-disc prose-ol:list-decimal",
+                    class: "prose max-w-none focus:outline-none min-h-[500px] p-8",
                 },
             },
         });
 
-        editor.commands.focus("end");
+        instanciaEditor.commands.focus("end");
     }
 
-    function savePDF() {
+    function imprimirPDF() {
         window.print();
-        toast.success("Preparando impresión...", {
-            icon: "🖨️",
-            style: "background: #1e1e24; color: #fff;",
-        });
     }
 
-    // Backup Manual para prevenir borrados por CCleaner
-    function downloadBackup() {
-        const dataStr =
-            "data:text/json;charset=utf-8," +
-            encodeURIComponent(JSON.stringify(notes, null, 2));
-        const downloadAnchorNode = document.createElement("a");
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute(
-            "download",
-            `respaldo_arca_${new Date().toISOString().slice(0, 10)}.json`,
-        );
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-        toast.success("Copia de seguridad descargada", {
-            icon: "💾",
-            style: "background: #1e1e24; color: #fff;",
-        });
-    }
+    $: claseContenedor = isLight
+        ? "bg-white border-stone-200"
+        : "bg-white/5 border-white/10";
+    $: claseToolbar = isLight
+        ? "bg-stone-50 border-stone-200"
+        : "bg-black/20 border-white/10";
+    $: claseTarjeta = isLight
+        ? "bg-white border-stone-200 hover:border-indigo-300"
+        : "bg-[#1a1a20] border-white/5 hover:border-indigo-500/30";
+    $: claseBotonBarra = isLight
+        ? "text-stone-500 hover:bg-stone-100"
+        : "text-slate-400 hover:bg-white/10";
 </script>
 
 <div
-    class="flex flex-col h-full {isLight
-        ? 'bg-white border-slate-200'
-        : 'bg-white/5 border-white/10'} backdrop-blur-md rounded-xl border overflow-hidden notebook-container relative transition-colors duration-500"
+    class="flex flex-col h-full {claseContenedor} backdrop-blur-md rounded-xl border overflow-hidden relative transition-colors duration-500 notebook-container"
 >
-    {#if view === "list"}
-        <!-- VISTA DE GALERÍA -->
+    {#if vista === "lista"}
+        <!-- LISTADO DE ESTUDIOS -->
         <div class="p-6 h-full flex flex-col">
-            <div class="flex justify-between items-center mb-6">
-                <h2
-                    class="text-xl font-bold flex items-center gap-2 {isLight
-                        ? 'text-slate-800'
-                        : 'text-white'}"
-                >
-                    📚 Mis Estudios
-                    <span
-                        class="text-xs px-2 py-0.5 rounded-full font-normal {isLight
-                            ? 'bg-slate-100 text-slate-500'
-                            : 'bg-white/10 text-slate-400'}"
-                        >{notes.length}</span
+            <div class="flex justify-between items-center mb-10">
+                <div class="flex flex-col">
+                    <h2
+                        class="text-xs uppercase font-bold tracking-[0.3em] opacity-40"
                     >
-                </h2>
+                        Mis Estudios
+                    </h2>
+                    <span
+                        class="text-2xl font-bold {isLight
+                            ? 'text-stone-900'
+                            : 'text-white'}">Cuaderno Teológico</span
+                    >
+                </div>
                 <button
-                    on:click={createNewNote}
-                    class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                    on:click={crearNuevaNota}
+                    class="px-6 py-2 border {isLight
+                        ? 'border-stone-800 text-stone-900'
+                        : 'border-white/40 text-white'} text-[10px] uppercase font-bold tracking-widest hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all"
                 >
-                    + Nueva Nota
-                </button>
-            </div>
-
-            <!-- Aviso CCleaner (Discreto) -->
-            <div class="px-1 mb-4 flex justify-end">
-                <button
-                    on:click={downloadBackup}
-                    class="text-xs text-slate-600 hover:text-indigo-400 flex items-center gap-1 transition-colors"
-                    title="Exportar archivo de seguridad (backup)"
-                >
-                    📩 Exportar Datos
+                    Iniciar Nuevo Estudio
                 </button>
             </div>
 
             <div
-                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto pr-2 pb-4"
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pb-10"
             >
-                {#each notes as note (note.id)}
-                    <div
-                        on:click={() => openNote(note.id)}
-                        class="group relative border p-5 rounded-xl cursor-pointer transition-all hover:translate-y-[-2px] hover:shadow-xl
-                        {isLight
-                            ? 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-indigo-100/50'
-                            : 'bg-[#1a1a20] border-white/5 hover:border-indigo-500/30'}"
+                {#each $notas as nota (nota.id)}
+                    <button
+                        on:click={() => abrirNota(nota.id)}
+                        class="{claseTarjeta} text-left p-6 border transition-all flex flex-col h-48 group"
                     >
-                        <h3
-                            class="font-bold mb-2 line-clamp-1 transition-colors {isLight
-                                ? 'text-slate-700 group-hover:text-indigo-600'
-                                : 'text-slate-200 group-hover:text-indigo-400'}"
+                        <span
+                            class="text-[9px] uppercase font-bold tracking-widest opacity-30 mb-2"
                         >
-                            {note.title}
+                            {new Date(
+                                nota.fecha_actualizacion,
+                            ).toLocaleDateString()}
+                        </span>
+                        <h3
+                            class="font-bold text-lg mb-3 line-clamp-2 {isLight
+                                ? 'text-stone-800'
+                                : 'text-stone-100'} group-hover:text-indigo-500 transition-colors"
+                        >
+                            {nota.titulo}
                         </h3>
                         <p
-                            class="text-xs text-slate-500 mb-4 line-clamp-3 h-10"
+                            class="text-[11px] leading-relaxed opacity-50 line-clamp-3"
                         >
-                            {note.preview}
+                            {nota.previsualización}
                         </p>
-                        <div class="flex justify-between items-end mt-2">
-                            <span
-                                class="text-[10px] font-mono {isLight
-                                    ? 'text-slate-400'
-                                    : 'text-slate-600'}"
-                            >
-                                {new Date(note.updatedAt).toLocaleDateString(
-                                    [],
-                                    { day: "2-digit", month: "short" },
-                                )}
-                            </span>
-                            <button
-                                on:click|stopPropagation={(e) =>
-                                    confirmDelete(e, note.id)}
-                                class="p-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100 {isLight
-                                    ? 'text-slate-400 hover:text-red-500 hover:bg-red-50'
-                                    : 'text-slate-600 hover:text-red-400 hover:bg-white/5'}"
-                                title="Eliminar"
-                            >
-                                🗑️
-                            </button>
-                        </div>
-                    </div>
+                    </button>
                 {/each}
 
-                {#if notes.length === 0}
+                {#if $notas.length === 0 && !$cargando}
                     <div
-                        class="col-span-full py-12 text-center text-slate-500 italic"
+                        class="col-span-full py-20 text-center opacity-30 text-[10px] uppercase font-bold tracking-[0.4em]"
                     >
-                        No hay notas aún. ¡Crea la primera! ✨
+                        El cuaderno está en espera de su pluma
                     </div>
                 {/if}
             </div>
         </div>
-
-        <ConfirmModal
-            isOpen={isModalOpen}
-            title="Eliminar Nota"
-            message="¿Estás seguro de que quieres eliminar esta nota? Esta acción no se puede deshacer."
-            confirmText="Sí, Eliminar"
-            cancelText="Cancelar"
-            on:confirm={executeDelete}
-            on:cancel={cancelDelete}
-        />
     {:else}
-        <!-- VISTA DE EDITOR -->
+        <!-- EDITOR DE ESTUDIO -->
         <div class="flex flex-col h-full">
-            <!-- Toolbar -->
+            <!-- Barra de Herramientas -->
             <div
-                class="flex gap-2 p-3 border-b items-center overflow-x-auto whitespace-nowrap scrollbar-hide flex-shrink-0 transition-colors
-                {isLight
-                    ? 'bg-slate-50 border-slate-200'
-                    : 'bg-black/20 border-white/10'}"
+                class="flex gap-2 p-3 border-b items-center overflow-x-auto whitespace-nowrap scrollbar-hide flex-shrink-0 {claseToolbar}"
             >
                 <button
-                    on:click={closeEditor}
-                    class="mr-2 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1"
-                    title="Volver a la lista"
+                    on:click={cerrarEditor}
+                    class="px-4 py-2 text-[10px] uppercase font-bold tracking-widest {claseBotonBarra} border-r border-white/10 mr-2"
                 >
-                    <span>←</span> <span class="hidden sm:inline">Volver</span>
+                    Cerrar
                 </button>
 
-                <div class="w-px h-6 bg-white/10 mx-1"></div>
+                {#if instanciaEditor}
+                    <div class="flex gap-1">
+                        <button
+                            on:click={() =>
+                                instanciaEditor
+                                    .chain()
+                                    .focus()
+                                    .toggleHeading({ level: 1 })
+                                    .run()}
+                            class="px-3 py-2 text-[10px] uppercase font-bold {claseBotonBarra} {instanciaEditor.isActive(
+                                'heading',
+                                { level: 1 },
+                            )
+                                ? 'text-indigo-500'
+                                : ''}"
+                        >
+                            Título
+                        </button>
+                        <button
+                            on:click={() =>
+                                instanciaEditor
+                                    .chain()
+                                    .focus()
+                                    .toggleHeading({ level: 2 })
+                                    .run()}
+                            class="px-3 py-2 text-[10px] uppercase font-bold {claseBotonBarra} {instanciaEditor.isActive(
+                                'heading',
+                                { level: 2 },
+                            )
+                                ? 'text-indigo-500'
+                                : ''}"
+                        >
+                            Subtítulo
+                        </button>
+                        <button
+                            on:click={() =>
+                                instanciaEditor
+                                    .chain()
+                                    .focus()
+                                    .setParagraph()
+                                    .run()}
+                            class="px-3 py-2 text-[10px] uppercase font-bold {claseBotonBarra} {instanciaEditor.isActive(
+                                'paragraph',
+                            )
+                                ? 'text-indigo-500'
+                                : ''}"
+                        >
+                            Párrafo
+                        </button>
+                    </div>
 
-                {#if editor}
-                    <!-- Botones Semánticos -->
-                    <button
-                        on:click={() =>
-                            editor
-                                .chain()
-                                .focus()
-                                .toggleHeading({ level: 1 })
-                                .run()}
-                        class="px-3 py-1.5 rounded hover:bg-white/10 text-xs font-medium transition-colors {editor.isActive(
-                            'heading',
-                            { level: 1 },
-                        )
-                            ? 'bg-white/20 text-indigo-400'
-                            : 'text-slate-400'}"
-                    >
-                        Título
-                    </button>
+                    <div class="w-px h-4 bg-white/10 mx-2"></div>
 
-                    <button
-                        on:click={() =>
-                            editor
-                                .chain()
-                                .focus()
-                                .toggleHeading({ level: 1 })
-                                .run()}
-                        class="px-3 py-1.5 rounded-lg text-xs font-serif transition-all
-                {editor.isActive('heading', { level: 1 })
-                            ? isLight
-                                ? 'bg-indigo-100 text-indigo-700'
-                                : 'bg-white/20 text-white shadow-sm'
-                            : isLight
-                              ? 'text-slate-600 hover:bg-slate-200'
-                              : 'text-slate-400 hover:bg-white/10 hover:text-white'}"
-                    >
-                        H1
-                    </button>
-                    <button
-                        on:click={() =>
-                            editor
-                                .chain()
-                                .focus()
-                                .toggleHeading({ level: 2 })
-                                .run()}
-                        class="px-3 py-1.5 rounded-lg text-xs font-serif transition-all font-bold
-                {editor.isActive('heading', { level: 2 })
-                            ? isLight
-                                ? 'bg-indigo-100 text-indigo-700'
-                                : 'bg-white/20 text-white shadow-sm'
-                            : isLight
-                              ? 'text-slate-600 hover:bg-slate-200'
-                              : 'text-slate-400 hover:bg-white/10 hover:text-white'}"
-                    >
-                        H2
-                    </button>
-
-                    <button
-                        on:click={() =>
-                            editor.chain().focus().setParagraph().run()}
-                        class="px-3 py-1.5 rounded hover:bg-white/10 text-xs font-medium transition-colors {editor.isActive(
-                            'paragraph',
-                        )
-                            ? 'bg-white/20 text-indigo-400'
-                            : 'text-slate-400'}"
-                    >
-                        Párrafo
-                    </button>
-
-                    <div
-                        class="w-px h-4 {isLight
-                            ? 'bg-slate-300'
-                            : 'bg-white/10'} mx-1"
-                    ></div>
-
-                    <button
-                        on:click={() =>
-                            editor.chain().focus().toggleBold().run()}
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5
-                {editor.isActive('bold')
-                            ? isLight
-                                ? 'bg-indigo-100 text-indigo-700'
-                                : 'bg-white/20 text-white shadow-sm'
-                            : isLight
-                              ? 'text-slate-600 hover:bg-slate-200'
-                              : 'text-slate-400 hover:bg-white/10 hover:text-white'}"
-                    >
-                        Negrita
-                    </button>
-
-                    <button
-                        on:click={() =>
-                            editor.chain().focus().toggleItalic().run()}
-                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5
-                {editor.isActive('italic')
-                            ? isLight
-                                ? 'bg-indigo-100 text-indigo-700'
-                                : 'bg-white/20 text-white shadow-sm'
-                            : isLight
-                              ? 'text-slate-600 hover:bg-slate-200'
-                              : 'text-slate-400 hover:bg-white/10 hover:text-white'}"
-                    >
-                        Cursiva
-                    </button>
-
-                    <button
-                        on:click={() =>
-                            editor.chain().focus().toggleBulletList().run()}
-                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all font-mono
-                {editor.isActive('bulletList')
-                            ? isLight
-                                ? 'bg-indigo-100 text-indigo-700'
-                                : 'bg-white/20 text-white shadow-sm'
-                            : isLight
-                              ? 'text-slate-600 hover:bg-slate-200'
-                              : 'text-slate-400 hover:bg-white/10 hover:text-white'}"
-                    >
-                        Lista
-                    </button>
+                    <div class="flex gap-1">
+                        <button
+                            on:click={() =>
+                                instanciaEditor
+                                    .chain()
+                                    .focus()
+                                    .toggleBold()
+                                    .run()}
+                            class="px-3 py-2 text-[10px] uppercase font-bold {claseBotonBarra} {instanciaEditor.isActive(
+                                'bold',
+                            )
+                                ? 'text-indigo-500'
+                                : ''}"
+                        >
+                            Negrita
+                        </button>
+                        <button
+                            on:click={() =>
+                                instanciaEditor
+                                    .chain()
+                                    .focus()
+                                    .toggleItalic()
+                                    .run()}
+                            class="px-3 py-2 text-[10px] uppercase font-bold {claseBotonBarra} {instanciaEditor.isActive(
+                                'italic',
+                            )
+                                ? 'text-indigo-500'
+                                : ''}"
+                        >
+                            Cursiva
+                        </button>
+                        <button
+                            on:click={() =>
+                                instanciaEditor
+                                    .chain()
+                                    .focus()
+                                    .toggleBulletList()
+                                    .run()}
+                            class="px-3 py-2 text-[10px] uppercase font-bold {claseBotonBarra} {instanciaEditor.isActive(
+                                'bulletList',
+                            )
+                                ? 'text-indigo-500'
+                                : ''}"
+                        >
+                            Lista
+                        </button>
+                    </div>
 
                     <div class="flex-1"></div>
 
                     <button
-                        on:click={savePDF}
-                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5
-                {isLight
-                            ? 'text-slate-500 hover:text-red-600 hover:bg-red-50'
-                            : 'text-slate-400 hover:text-white hover:bg-white/10'}"
-                        title="Imprimir PDF"
+                        on:click={imprimirPDF}
+                        class="px-4 py-2 text-[10px] uppercase font-bold tracking-widest {claseBotonBarra}"
                     >
-                        <span>🖨️ PDF</span>
-                    </button>
-
-                    <button
-                        on:click={downloadBackup}
-                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5
-                {isLight
-                            ? 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
-                            : 'text-slate-400 hover:text-white hover:bg-white/10'}"
-                        title="Descargar Respaldo JSON"
-                    >
-                        <span>💾 Backup</span>
+                        Exportar PDF
                     </button>
                 {/if}
             </div>
 
-            <!-- Editor Area -->
+            <!-- Área de Escritura -->
             <div
-                class="flex-1 overflow-y-auto cursor-text p-6 md:p-8 outline-none"
-                on:click={() => editor?.commands.focus()}
+                class="flex-1 overflow-y-auto cursor-text outline-none {isLight
+                    ? 'prose-stone'
+                    : 'prose-invert'}"
+                on:click={() => instanciaEditor?.commands.focus()}
             >
-                <div
-                    bind:this={element}
-                    class="prose prose-sm md:prose-base max-w-none h-full outline-none
-            {isLight ? 'prose-slate' : 'prose-invert'}
-             prose-p:leading-relaxed prose-headings:font-serif prose-headings:tracking-tight
-             prose-a:text-indigo-400 prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/50 prose-blockquote:pl-4 prose-blockquote:italic
-            "
-                ></div>
+                <div bind:this={elementoEditor}></div>
             </div>
 
-            <!-- Status Bar -->
+            <!-- Estado -->
             <div
-                class="px-4 py-2 text-[10px] flex justify-between items-center border-t select-none transition-colors
-        {isLight
-                    ? 'bg-slate-50 border-slate-200 text-slate-400'
-                    : 'bg-black/20 border-white/5 text-slate-500'}"
+                class="px-6 py-3 text-[9px] uppercase font-bold tracking-[0.2em] flex justify-between items-center border-t {claseToolbar} opacity-40"
             >
-                <span>
-                    {notes.length} nota{notes.length !== 1 ? "s" : ""} en tu cuaderno
-                </span>
-                <span class="font-mono opacity-50">
-                    {editor?.storage.characterCount.words() || 0} palabras
-                </span>
+                <span>Persistencia activa en base de datos</span>
+                <span
+                    >{instanciaEditor?.storage.characterCount.words() || 0} palabras</span
+                >
             </div>
         </div>
     {/if}
 </div>
 
 <style>
-    /* Estilos específicos para Tiptap en Svelte */
+    /* Estilos del Editor */
     :global(.ProseMirror) {
         min-height: 100%;
         outline: none;
     }
-
-    /* FIX LISTAS: Asegurar que las listas tengan estilo visible */
-    :global(.ProseMirror ul) {
-        list-style-type: disc !important;
-        padding-left: 1.5rem !important;
-        margin-top: 0.5rem !important;
-        margin-bottom: 0.5rem !important;
-    }
-    :global(.ProseMirror li) {
-        margin-bottom: 0.25rem !important;
-    }
-
-    /* FIX HEADINGS: Estilos por defecto (Dark Mode) - Se sobrescriben inline o por clase padre */
     :global(.ProseMirror h1) {
-        font-size: 2.25rem !important;
+        font-size: 2.5rem !important;
         font-weight: 800 !important;
-        margin-bottom: 1rem !important;
-        line-height: 1.2;
+        margin-bottom: 2rem !important;
     }
     :global(.ProseMirror h2) {
         font-size: 1.5rem !important;
-        font-weight: 700 !important;
-        margin-top: 1.5rem !important;
-        margin-bottom: 0.75rem !important;
-        line-height: 1.3;
+        margin-top: 2rem !important;
     }
-    :global(.ProseMirror h3) {
-        font-size: 1.25rem !important;
-        font-weight: 600 !important;
-        margin-top: 1.25rem !important;
-        margin-bottom: 0.5rem !important;
-        line-height: 1.4;
+    :global(.ProseMirror p) {
+        line-height: 1.8 !important;
     }
 
-    :global(.ProseMirror p.is-editor-empty:first-child::before) {
-        color: #6b7280;
-        content: attr(data-placeholder);
-        float: left;
-        height: 0;
-        pointer-events: none;
-    }
-
-    /* Estilos de tabla básicos para el editor */
-    :global(.ProseMirror table) {
-        border-collapse: collapse;
-        margin: 0;
-        overflow: hidden;
-        table-layout: fixed;
-        width: 100%;
-    }
-
-    :global(.ProseMirror td),
-    :global(.ProseMirror th) {
-        border: 1px solid #4b5563;
-        box-sizing: border-box;
-        min-width: 1em;
-        padding: 6px 8px;
-        position: relative;
-        vertical-align: top;
-    }
-
-    :global(.ProseMirror th) {
-        font-weight: bold;
-        text-align: left;
-        background-color: rgba(255, 255, 255, 0.05);
-    }
-
-    /* Adaptación a Light Mode para tablas */
-    :global(.light-theme .ProseMirror th) {
-        background-color: #f1f5f9; /* Slate 100 */
-        border-color: #cbd5e1; /* Slate 300 */
-        color: #1e293b;
-    }
-    :global(.light-theme .ProseMirror td) {
-        border-color: #cbd5e1;
-        color: #334155;
-    }
-
-    /* Media Print para exportación limpia */
+    /* MEDIA PRINT: EXPORTACIÓN PROFESIONAL A PDF */
     @media print {
         @page {
             margin: 2cm;
-            size: auto;
+            size: A4;
         }
 
-        /* 1. RESET Y OCULTAMIENTO GLOBAL */
+        /* 1. Reset Global - Ocultamos todo lo que no sea el área de impresión */
         :global(body),
-        :global(#app) {
+        :global(#app),
+        :global(main),
+        :global(.min-h-screen) {
             background: white !important;
+            visibility: hidden !important;
             margin: 0 !important;
             padding: 0 !important;
-            visibility: hidden !important; /* Ocultar todo por defecto */
-            height: auto !important;
             overflow: visible !important;
+            height: auto !important;
         }
 
-        /* 2. MOSTRAR SOLO EL NOTEBOOK */
+        /* 2. Mostrar solo el contenedor específico de la nota */
         :global(.notebook-container) {
             visibility: visible !important;
+            display: block !important;
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
-            background: white !important;
-            display: block !important;
+            height: auto !important;
+            border: 0 none !important; /* Forzamos eliminación total de bordes */
+            outline: none !important;
             box-shadow: none !important;
+            background: white !important;
+            color: black !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
         }
 
-        /* 3. PROPAGAR VISIBILIDAD A HIJOS */
         :global(.notebook-container *) {
             visibility: visible !important;
         }
 
-        /* 4. OCULTAR UI INTERNA DEL NOTEBOOK (Botones, barras, etc.) */
-        .toolbar,
-        .flex.gap-2.p-3, /* Toolbar container class approximation */
-        .flex.items-center.gap-2, /* Botones */
-        .flex.justify-between.items-center.border-t, /* Status Bar */
-        button {
+        /* 3. Limpieza de elementos de interfaz */
+        .border-b,
+        .border-t,
+        button,
+        span.uppercase,
+        .flex-none,
+        .flex-shrink-0 {
             display: none !important;
-        }
-
-        /* Asegurar que el área del editor sea visible y limpia */
-        .prose {
-            padding: 0 !important;
+            height: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
         }
 
-        /* ... (rest of typo styles) ... */
+        /* 4. Formato Editorial para el Texto (Georgia/Serif) */
         :global(.ProseMirror) {
             padding: 0 !important;
             margin: 0 !important;
+            color: black !important;
+            font-family: serif !important; /* Fallback universal */
+            font-size: 12pt !important;
+            line-height: 1.6 !important;
+            text-align: justify !important;
             border: none !important;
             box-shadow: none !important;
-            color: black !important;
-            font-family: "Georgia", "Times New Roman", serif !important;
-            font-size: 11pt !important;
-            line-height: 1.5 !important;
-        }
-
-        :global(.ProseMirror p) {
-            color: black !important;
-            margin-bottom: 0.3cm !important;
-            text-align: justify !important;
         }
 
         :global(.ProseMirror h1) {
-            font-family: "Arial", sans-serif !important;
-            font-size: 18pt !important;
+            font-family: sans-serif !important;
+            font-size: 24pt !important;
             font-weight: bold !important;
             color: black !important;
-            margin-bottom: 0.5cm !important;
-            border-bottom: 2px solid #000 !important;
-            padding-bottom: 0.2cm !important;
+            border-bottom: 2pt solid #000 !important;
+            padding-bottom: 8pt !important;
+            margin-bottom: 15pt !important;
+            margin-top: 0 !important;
         }
+
         :global(.ProseMirror h2) {
-            font-family: "Arial", sans-serif !important;
-            font-size: 14pt !important;
-            margin-top: 0.5cm !important;
+            font-family: sans-serif !important;
+            font-size: 18pt !important;
+            margin-top: 15pt !important;
+            margin-bottom: 8pt !important;
             color: #333 !important;
         }
-        :global(.ProseMirror h3) {
-            font-size: 12pt !important;
-        }
 
-        :global(.ProseMirror blockquote) {
-            border-left: 3px solid #666 !important;
-            margin-left: 0 !important;
-            padding-left: 0.5cm !important;
-            font-style: italic !important;
+        /* Asegurar tablas limpias */
+        :global(.ProseMirror table) {
+            border-collapse: collapse !important;
+            border: 1pt solid black !important;
+            margin: 10pt 0 !important;
         }
-
-        /* Ajustes de tabla para impresión */
-        :global(.ProseMirror table),
         :global(.ProseMirror td),
         :global(.ProseMirror th) {
-            border: 1px solid black !important;
-            color: black !important;
-            page-break-inside: avoid;
+            border: 1pt solid black !important;
+            padding: 4pt !important;
         }
     }
 </style>

@@ -1,16 +1,21 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
+from sqlalchemy.orm import Session
+from typing import List, Optional
 import os
-from pathlib import Path
-from core import ArcaScanner, FileProcessor
 
-app = FastAPI(title="El Arca Brain", version="1.0.0")
+from database import obtener_db, inicializar_base_de_datos
+import models
+import schemas
+from servicios import ServicioBiblioteca
 
-# TODO: Ajustar a la ruta real de tu librería
-LIBRARY_ROOT = os.path.join(os.getcwd(), "..", "public", "library")
+app = FastAPI(
+    title="El Arca API",
+    description="Servidor centralizado para estudio teológico y gestión de biblioteca.",
+    version="2.0.0"
+)
 
-# Configurar CORS
+# Configurar CORS para desarrollo local y producción (Vercel)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,35 +24,76 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-def read_root():
-    return {"status": "online", "message": "El Cerebro de El Arca está escuchando 🧠"}
+# Inicializar DB al arranque (crear tablas si no existen)
+@app.on_event("startup")
+def startup_event():
+    inicializar_base_de_datos()
 
-@app.get("/scan")
-def scan_library_endpoint():
-    """Escanea la carpeta library y lista archivos."""
-    scanner = ArcaScanner(LIBRARY_ROOT)
-    files = scanner.scan_directory()
-    return {"count": len(files), "files": files[:100]} # Limitamos preview a 100
-
-@app.post("/analyze")
-def analyze_file(file_path: str):
-    """Analiza un archivo específico (hash y texto) para IA."""
-    # Seguridad básica: asegurar que esté dentro de library
-    full_path = Path(LIBRARY_ROOT) / file_path
-    
-    if not full_path.exists():
-        return {"error": "File not found"}
-    
-    hash_val = FileProcessor.get_file_hash(full_path)
-    text_preview = FileProcessor.extract_text(full_path)[:500] # Primeros 500 chars
-    
+@app.get("/", tags=["Estado"])
+def leer_raiz():
     return {
-        "filename": full_path.name,
-        "hash": hash_val,
-        "text_preview": text_preview
+        "estado": "en línea",
+        "mensaje": "El Arca 2.0 está operativa",
+        "version": "2.0.0"
     }
 
+# --- ENDPOINTS: LIBROS DIGITALES ---
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+@app.get("/libros/digitales", response_model=List[schemas.LibroDigital], tags=["Biblioteca Digital"])
+def listar_libros_digitales(db: Session = Depends(obtener_db)):
+    return db.query(models.LibroDigital).all()
+
+@app.post("/libros/digitales/escanear", tags=["Biblioteca Digital"])
+def escanear_biblioteca(background_tasks: BackgroundTasks, db: Session = Depends(obtener_db)):
+    LIBRARY_PATH = os.getenv("LIBRARY_PATH", "../public/library")
+    background_tasks.add_task(ServicioBiblioteca.escanear_directorio, db, LIBRARY_PATH)
+    return {"mensaje": "Escaneo iniciado en segundo plano."}
+
+# --- ENDPOINTS: LIBROS FÍSICOS ---
+
+@app.get("/libros/fisicos", response_model=List[schemas.LibroFisico], tags=["Biblioteca Física"])
+def listar_libros_fisicos(db: Session = Depends(obtener_db)):
+    return db.query(models.LibroFisico).all()
+
+@app.get("/libros/fisicos/isbn/{isbn}", tags=["Biblioteca Física"])
+def buscar_libro_por_isbn(isbn: str):
+    from servicios import ServicioFisico
+    datos = ServicioFisico.buscar_por_isbn(isbn)
+    if not datos:
+        raise HTTPException(status_code=404, detail="No se encontraron datos para este ISBN")
+    return datos
+
+@app.post("/libros/fisicos", response_model=schemas.LibroFisico, tags=["Biblioteca Física"])
+def agregar_libro_fisico(libro: schemas.LibroFisicoCrear, db: Session = Depends(obtener_db)):
+    nuevo_libro = models.LibroFisico(**libro.dict())
+    db.add(nuevo_libro)
+    db.commit()
+    db.refresh(nuevo_libro)
+    return nuevo_libro
+
+# --- ENDPOINTS: NOTAS (CUADERNO) ---
+
+@app.get("/notas", response_model=List[schemas.Nota], tags=["Cuaderno"])
+def listar_notas(db: Session = Depends(obtener_db)):
+    return db.query(models.Nota).order_by(models.Nota.fecha_actualizacion.desc()).all()
+
+@app.post("/notas", response_model=schemas.Nota, tags=["Cuaderno"])
+def crear_nota(nota: schemas.NotaCrear, db: Session = Depends(obtener_db)):
+    nueva_nota = models.Nota(**nota.dict())
+    db.add(nueva_nota)
+    db.commit()
+    db.refresh(nueva_nota)
+    return nueva_nota
+
+@app.put("/notas/{nota_id}", response_model=schemas.Nota, tags=["Cuaderno"])
+def actualizar_nota(nota_id: int, nota_actualizada: schemas.NotaCrear, db: Session = Depends(obtener_db)):
+    db_nota = db.query(models.Nota).filter(models.Nota.id == nota_id).first()
+    if not db_nota:
+        raise HTTPException(status_code=404, detail="Nota no encontrada")
+    
+    for key, value in nota_actualizada.dict().items():
+        setattr(db_nota, key, value)
+    
+    db.commit()
+    db.refresh(db_nota)
+    return db_nota

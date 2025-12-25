@@ -15,7 +15,7 @@ class ServicioIA:
         else:
             try:
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
             except Exception as e:
                 logger.error(f"Error inicializando Gemini: {e}")
                 self.model = None
@@ -40,6 +40,6 @@ class ServicioIA:
             return respuesta.text
         except Exception as e:
             logger.error(f"Error en Gemini IA: {e}")
-            return f"No se pudo generar la definición para '{termino}'."
+            return f"Error técnico: {str(e)} (Verifica la API Key en Render)"
 
 servicio_ia = ServicioIA()

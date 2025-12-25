@@ -148,72 +148,48 @@
   class="min-h-screen transition-colors duration-700 {claseFondo} {claseTexto} font-sans selection:bg-indigo-500/30"
 >
   <div
-    class="max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col h-screen overflow-hidden"
+    class="max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col min-h-screen md:h-screen md:overflow-hidden relative"
   >
     <!-- CABECERA -->
     <header
-      class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6 flex-shrink-0"
+      class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 gap-6 flex-shrink-0"
     >
-      <div class="flex items-center gap-6">
-        <!-- Restauración del Logo Original Sobrio -->
+      <div class="flex items-center gap-6 w-full justify-between md:w-auto">
+        <!-- Logo -->
         <div class="flex items-center gap-4">
           <LogoArca
-            size="w-12 h-12"
+            size="w-10 h-10 md:w-12 md:h-12"
             color={esClaro ? "text-indigo-900" : "text-white"}
           />
-          <div class="flex flex-col border-l {claseBorde} pl-6 py-1">
+          <div class="flex flex-col border-l {claseBorde} pl-4 md:pl-6 py-1">
             <h1
-              class="text-2xl font-black tracking-tighter leading-none {esClaro
+              class="text-xl md:text-2xl font-black tracking-tighter leading-none {esClaro
                 ? 'text-indigo-950'
                 : 'text-white'}"
             >
               El Arca
             </h1>
             <span
-              class="text-[9px] uppercase tracking-[0.3em] opacity-40 font-bold mt-1"
+              class="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-40 font-bold mt-1"
             >
               Estudiante: {$usuario || "Invitado"}
             </span>
           </div>
         </div>
+
+        <!-- Widgets Móviles (Solo Tema y Música por espacio) -->
+        <div class="flex md:hidden gap-2">
+          <button
+            on:click={alternarTema}
+            class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs"
+          >
+            {$tema === "claro" ? "☀️" : "🌙"}
+          </button>
+        </div>
       </div>
 
-      <!-- Navegación Móvil y Widgets -->
-      <div
-        class="flex items-center gap-4 md:gap-6 ml-auto md:ml-0 w-full md:w-auto justify-end"
-      >
-        <nav
-          class="flex md:hidden p-1 rounded-xl border {claseBorde} {esClaro
-            ? 'bg-white/50'
-            : 'bg-black/20'}"
-        >
-          <button
-            on:click={() => pestañaActiva.set("biblioteca")}
-            class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all {$pestañaActiva ===
-            'biblioteca'
-              ? esClaro
-                ? 'bg-indigo-100 text-indigo-900'
-                : 'bg-white/10 text-white'
-              : claseSubTexto}"
-          >
-            Biblioteca
-          </button>
-          <button
-            on:click={() => pestañaActiva.set("notas")}
-            class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all {$pestañaActiva ===
-            'notas'
-              ? esClaro
-                ? 'bg-indigo-100 text-indigo-900'
-                : 'bg-white/10 text-white'
-              : claseSubTexto}"
-          >
-            Notas
-          </button>
-        </nav>
-      </div>
-
-      <!-- Widgets Superiores -->
-      <div class="flex items-center gap-4 md:gap-6">
+      <!-- Widgets Desktop -->
+      <div class="hidden md:flex items-center gap-6">
         <!-- Tema -->
         <button
           on:click={alternarTema}
@@ -273,50 +249,51 @@
       </div>
     </header>
 
-    <!-- ÁREA PRINCIPAL -->
-    <main class="flex-1 overflow-hidden grid md:grid-cols-2 gap-6 relative">
-      <!-- Columna Biblioteca -->
+    <!-- ÁREA PRINCIPAL (Desktop: Grid Fixed / Mobile: Flex Scroll) -->
+    <main
+      class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 relative md:overflow-hidden"
+    >
+      <!-- SECCIÓN 1: BIBLIOTECA (Siempre visible arriba en móvil) -->
       <div
-        class="flex-col gap-6 overflow-hidden h-full {$pestañaActiva ===
-        'biblioteca'
-          ? 'flex'
-          : 'hidden md:flex'}"
+        class="flex flex-col gap-4 md:gap-6 md:h-full md:overflow-hidden min-h-[500px]"
       >
         {#if $cargando}
-          <div class="flex-1 flex items-center justify-center">
+          <div class="flex-1 flex items-center justify-center p-10">
             <span class="text-sm uppercase tracking-[0.2em] animate-pulse"
               >Sincronizando Archivos...</span
             >
           </div>
         {:else}
           <div class="flex-shrink-0 flex flex-col gap-4">
-            <!-- Selector de Biblioteca -->
-            <nav
-              class="flex p-1 rounded-xl border {claseBorde} {claseTarjeta} self-start"
-            >
-              <button
-                on:click={() => (subPestañaIzquierda = "digital")}
-                class="px-5 py-2 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaIzquierda ===
-                'digital'
-                  ? esClaro
-                    ? 'bg-indigo-100 text-indigo-900'
-                    : 'bg-white/10 text-white'
-                  : 'opacity-40 hover:opacity-100'}"
+            <div class="flex justify-between items-center">
+              <nav
+                class="flex p-1 rounded-xl border {claseBorde} {claseTarjeta} self-start"
               >
-                Digital
-              </button>
-              <button
-                on:click={() => (subPestañaIzquierda = "fisica")}
-                class="px-5 py-2 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaIzquierda ===
-                'fisica'
-                  ? esClaro
-                    ? 'bg-indigo-100 text-indigo-900'
-                    : 'bg-white/10 text-white'
-                  : 'opacity-40 hover:opacity-100'}"
-              >
-                Física
-              </button>
-            </nav>
+                <button
+                  on:click={() => (subPestañaIzquierda = "digital")}
+                  class="px-4 md:px-5 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaIzquierda ===
+                  'digital'
+                    ? esClaro
+                      ? 'bg-indigo-100 text-indigo-900'
+                      : 'bg-white/10 text-white'
+                    : 'opacity-40 hover:opacity-100'}"
+                >
+                  Digital
+                </button>
+                <button
+                  on:click={() => (subPestañaIzquierda = "fisica")}
+                  class="px-4 md:px-5 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaIzquierda ===
+                  'fisica'
+                    ? esClaro
+                      ? 'bg-indigo-100 text-indigo-900'
+                      : 'bg-white/10 text-white'
+                    : 'opacity-40 hover:opacity-100'}"
+                >
+                  Física
+                </button>
+              </nav>
+            </div>
+
             <Estadisticas
               datos={subPestañaIzquierda === "digital"
                 ? $biblioteca
@@ -324,8 +301,10 @@
               {esClaro}
             />
           </div>
+
+          <!-- Contenedor Tabla/Visor con altura fija en móvil para scroll interno -->
           <div
-            class="flex-1 overflow-hidden rounded-xl border {claseBorde} {esClaro
+            class="flex-1 md:overflow-hidden h-[600px] md:h-auto rounded-xl border {claseBorde} {esClaro
               ? 'bg-white shadow-sm'
               : 'bg-black/10 backdrop-blur-sm'} relative"
           >
@@ -343,19 +322,17 @@
         {/if}
       </div>
 
-      <!-- Columna Derecha: Notas, Asistente, Biblia -->
+      <!-- SECCIÓN 2: HERRAMIENTAS (Debajo en móvil) -->
       <div
-        class="flex-col gap-4 overflow-hidden h-full {$pestañaActiva === 'notas'
-          ? 'flex'
-          : 'hidden md:flex'}"
+        class="flex flex-col gap-4 md:h-full md:overflow-hidden min-h-[600px] pb-10 md:pb-0"
       >
         <!-- Selector de Sub-pestaña -->
         <nav
-          class="flex p-1 rounded-xl border {claseBorde} {claseTarjeta} self-start"
+          class="flex flex-wrap p-1 rounded-xl border {claseBorde} {claseTarjeta} self-start"
         >
           <button
             on:click={() => (subPestañaDerecha = "notas")}
-            class="px-5 py-2 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+            class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
             'notas'
               ? esClaro
                 ? 'bg-indigo-100 text-indigo-900'
@@ -366,7 +343,7 @@
           </button>
           <button
             on:click={() => (subPestañaDerecha = "asistente")}
-            class="px-5 py-2 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+            class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
             'asistente'
               ? esClaro
                 ? 'bg-indigo-100 text-indigo-900'
@@ -377,7 +354,7 @@
           </button>
           <button
             on:click={() => (subPestañaDerecha = "biblia")}
-            class="px-5 py-2 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+            class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
             'biblia'
               ? esClaro
                 ? 'bg-indigo-100 text-indigo-900'
@@ -388,7 +365,7 @@
           </button>
           <button
             on:click={() => (subPestañaDerecha = "diccionario")}
-            class="px-5 py-2 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+            class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
             'diccionario'
               ? esClaro
                 ? 'bg-indigo-100 text-indigo-900'
@@ -400,7 +377,7 @@
         </nav>
 
         <div
-          class="flex-1 h-full relative overflow-hidden rounded-xl border {claseBorde} {esClaro
+          class="flex-1 h-[600px] md:h-full relative overflow-hidden rounded-xl border {claseBorde} {esClaro
             ? 'bg-white shadow-sm'
             : 'bg-white/5'}"
         >
@@ -425,9 +402,9 @@
       </div>
     </main>
 
-    <!-- PIE DE PÁGINA -->
+    <!-- PIE DE PÁGINA (Desktop Only) -->
     <footer
-      class="mt-8 flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-opacity pb-10"
+      class="hidden md:flex mt-8 flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-opacity pb-10"
     >
       <div class="text-[10px] font-medium tracking-tight">
         &copy; {new Date().getFullYear()} Héctor Aguila

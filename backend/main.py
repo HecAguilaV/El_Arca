@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import os
+import logging
 # Cargar variables de entorno desde .env ANTES de importar servicios
 from dotenv import load_dotenv
 load_dotenv()

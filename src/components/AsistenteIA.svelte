@@ -1,10 +1,79 @@
-<script>
     import { onMount, tick } from "svelte";
     import { api } from "../lib/api";
     import { fade, slide } from "svelte/transition";
     import toast from "svelte-french-toast";
+    import { parse } from "marked";
 
     export let esClaro = false;
+    export let nombreUsuario = "Estudiante";
+
+    // ... (resto del script igual) ...
+
+    $: claseFondo = esClaro ? "bg-white" : "bg-[#0f0f13]";
+    // ...
+</script>
+
+<!-- ... (código HTML previo igual hasta el bucle de mensajes) ... -->
+
+        {#each mensajes as msg}
+            <div
+                class="flex flex-col {msg.rol === 'usuario'
+                    ? 'items-end'
+                    : 'items-start'}"
+            >
+                <span
+                    class="text-[9px] uppercase font-bold tracking-widest opacity-20 mb-2"
+                >
+                    {msg.rol === "usuario"
+                        ? nombreUsuario
+                        : etiquetasEspecialistas[especialistaActual]}
+                </span>
+                <div
+                    class="max-w-[95%] md:max-w-[80%] px-4 py-3 md:px-5 md:py-4 border text-sm leading-relaxed prose prose-sm max-w-none 
+                    {msg.rol === 'usuario' ? claseTextoBurbujaUser : claseTextoBurbujaIA}"
+                >
+                    {@html parse(msg.texto)}
+                </div>
+            </div>
+        {/each}
+
+<!-- ... -->
+    <!-- Entrada -->
+    <div class="p-4 md:p-6 border-t {claseCabecera}">
+        <div
+            class="relative flex flex-col border {esClaro
+                ? 'bg-white border-stone-200'
+                : 'bg-black/20 border-white/10'} rounded-lg"
+        >
+            <textarea
+                bind:value={entradaUsuario}
+                on:keydown={manejarTeclas}
+                placeholder="Introduzca su consulta..."
+                rows="1"
+                class="w-full bg-transparent text-sm p-3 md:p-4 outline-none resize-none {esClaro
+                    ? 'text-stone-800'
+                    : 'text-stone-200'} min-h-[50px] max-h-[150px]"
+            ></textarea>
+
+            <div
+                class="flex justify-between items-center p-2 md:p-3 border-t {esClaro
+                    ? 'border-stone-100'
+                    : 'border-white/5'}"
+            >
+                <span
+                    class="text-[8px] md:text-[9px] uppercase font-bold tracking-widest opacity-30 px-2 italic hidden md:inline"
+                    >Reflexión Continua</span
+                >
+                <button
+                    on:click={enviarMensaje}
+                    class="px-4 py-2 text-[9px] md:text-[10px] uppercase font-bold tracking-[0.2em] bg-indigo-600 text-white hover:bg-indigo-700 transition-all disabled:opacity-30 rounded ml-auto md:ml-0"
+                    disabled={!entradaUsuario.trim() || cargandoRespuesta}
+                >
+                    Enviar
+                </button>
+            </div>
+        </div>
+    </div>
     export let nombreUsuario = "Estudiante";
 
     let mensajes = [];
@@ -201,12 +270,10 @@
                         : etiquetasEspecialistas[especialistaActual]}
                 </span>
                 <div
-                    class="max-w-[90%] md:max-w-[80%] px-5 py-4 border text-sm leading-relaxed {msg.rol ===
-                    'usuario'
-                        ? claseTextoBurbujaUser
-                        : claseTextoBurbujaIA}"
+                    class="max-w-[95%] md:max-w-[80%] px-4 py-3 md:px-5 md:py-4 border text-sm leading-relaxed prose prose-sm max-w-none 
+                    {msg.rol === 'usuario' ? claseTextoBurbujaUser : claseTextoBurbujaIA}"
                 >
-                    {@html window.marked?.parse(msg.texto) || msg.texto}
+                    {@html parse(msg.texto)}
                 </div>
             </div>
         {/each}
@@ -227,7 +294,7 @@
     </div>
 
     <!-- Entrada -->
-    <div class="p-6 border-t {claseCabecera}">
+    <div class="p-4 md:p-6 border-t {claseCabecera}">
         <div
             class="relative flex flex-col border {esClaro
                 ? 'bg-white border-stone-200'
@@ -236,15 +303,15 @@
             <textarea
                 bind:value={entradaUsuario}
                 on:keydown={manejarTeclas}
-                placeholder="Introduzca su consulta o pasaje a analizar..."
-                rows="3"
-                class="w-full bg-transparent text-sm p-4 outline-none resize-none {esClaro
+                placeholder="Introduzca su consulta..."
+                rows="1"
+                class="w-full bg-transparent text-sm p-3 md:p-4 outline-none resize-none {esClaro
                     ? 'text-stone-800'
-                    : 'text-stone-200'}"
+                    : 'text-stone-200'} min-h-[40px] max-h-[150px]"
             ></textarea>
 
             <div
-                class="flex justify-between items-center p-3 border-t {esClaro
+                class="flex justify-between items-center p-2 md:p-3 border-t {esClaro
                     ? 'border-stone-100'
                     : 'border-white/5'}"
             >

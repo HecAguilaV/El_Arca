@@ -92,10 +92,13 @@ class ServicioDrive:
                 request = self.service.files().get_media(fileId=file_id)
 
             fh = io.BytesIO()
-            downloader = MediaIoBaseDownload(fh, request)
+            # Descargar en chunks de 5MB para mejor performance
+            downloader = MediaIoBaseDownload(fh, request, chunksize=5*1024*1024)
             done = False
             while done is False:
                 status, done = downloader.next_chunk()
+                if status:
+                    logger.debug(f"Descargando {file_id}: {int(status.progress() * 100)}%")
             
             fh.seek(0)
             return fh

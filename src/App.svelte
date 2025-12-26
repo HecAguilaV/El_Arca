@@ -178,12 +178,30 @@
         </div>
 
         <!-- Widgets Móviles (Solo Tema y Música por espacio) -->
-        <div class="flex md:hidden gap-2">
+        <!-- Widgets Móviles (Solo Tema y Música por espacio) -->
+        <div class="flex md:hidden gap-2 items-center">
           <button
             on:click={alternarTema}
             class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs"
           >
             {$tema === "claro" ? "☀️" : "🌙"}
+          </button>
+
+          <button
+            on:click={alternarMusica}
+            class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs {!musicaPausada
+              ? 'text-emerald-500 border-emerald-500/50'
+              : ''}"
+          >
+            🎵
+          </button>
+          <button
+            on:click={alternarTemporizador}
+            class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs font-mono {temporizadorActivo
+              ? 'text-indigo-500 border-indigo-500'
+              : ''}"
+          >
+            {temporizadorActivo ? formatearTiempo(segundosTemporizador) : "⏱️"}
           </button>
         </div>
       </div>

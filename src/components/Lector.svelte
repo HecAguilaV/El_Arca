@@ -50,19 +50,24 @@
             }
             window.pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_URL;
 
-            // Cargar PDF
+            // Instanciar document loading task
             const loadingTask = window.pdfjsLib.getDocument(urlArchivo);
+
+            // Añadir listener de progreso opcional si se desea
+
             pdfDoc = await loadingTask.promise;
             totalPages = pdfDoc.numPages;
-            cargando = false;
+            cargando = false; // Solo aquí dejamos de cargar
 
             // Renderizar primera página
             renderPage(pageNum);
         } catch (e) {
-            console.error("Error cargando PDF.js:", e);
+            console.error("Error crítico cargando PDF:", e);
             errorCarga = true;
             cargando = false;
-            toast.error("Error visualizando documento");
+            toast.error(
+                "No se pudo cargar el documento. Protegido o error de red.",
+            );
         }
     });
 

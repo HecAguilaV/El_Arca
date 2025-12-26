@@ -327,11 +327,6 @@
               : 'bg-black/10 backdrop-blur-sm'} relative"
           >
             {#if subPestañaIzquierda === "digital"}
-              {#if $archivoAbierto}
-                <div class="absolute inset-0 z-20">
-                  <Lector {esClaro} />
-                </div>
-              {/if}
               <Tabla datos={$biblioteca} {esClaro} />
             {:else}
               <BibliotecaFisica {esClaro} />
@@ -438,6 +433,9 @@
 
 {#if mostrarBienvenida}
   <ModalBienvenida {esClaro} on:save={manejarGuardadoUsuario} />
+{/if}
+{#if $archivoAbierto}
+  <Lector {esClaro} />
 {/if}
 <Toaster />
 

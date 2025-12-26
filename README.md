@@ -2,14 +2,23 @@
 
 > *"La sabiduría clama en las calles, alza su voz en las plazas..."* - Proverbios 1:20
 
-**El Arca** es una plataforma de estudio teológico diseñada para estudiantes, pastores y curiosos. Combina una biblioteca digital local ("curada" por ti) con la potencia de la Inteligencia Artificial Generativa y recursos bíblicos conectados.
+**# El Arca 2.0 🚢
+> **Plataforma de Estudio Teológico y Gestión de Biblioteca Digital**
 
----
+Sistema integral para la gestión de bibliotecas teológicas personales, estudio asistido por IA y toma de notas estructurada.
 
-## Características Principales (V6.0)
+## 📊 Estado del Proyecto
+![Estado](https://img.shields.io/badge/Estado-Desplegado-success)
+![Versión](https://img.shields.io/badge/Versión-2.0.0-blue)
+![Documentos](https://img.shields.io/badge/Biblioteca-~1200_Documentos-orange)
 
-### 1. La Santa Biblia (Conectada)
-*   **Lectura Inmersiva**: Acceso directo a las Escrituras a través de la [API.Bible](https://scripture.api.bible/).
+## 🌟 Características Principales
+
+*   **Biblioteca Masiva:** Indexación y sincronización probada con **~1200 documentos** (PDF, DOCX) desde Google Drive.
+*   **Asistente Teológico (RAG):** Chat contextual que responde preguntas basándose SOLO en tu biblioteca privada.
+*   **Diccionario Generativo:** Definiciones teológicas profundas y etimológicas generadas al vuelo por IA.
+*   **Cuaderno de Estudio:** Editor de texto enriquecido (Tiptap) con exportación a PDF "Editorial".
+*   **Sincronización Nube:** Base de datos en Neon (Postgres) y archivos en Drive. de la [API.Bible](https://scripture.api.bible/).
 *   **Versículo de Estudio**: Carga pasajes aleatorios o busca referencias específicas.
 *   **Diseño "Soli Deo Gloria"**: Tipografía serif elegante y modo de lectura sin distracciones.
 

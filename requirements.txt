@@ -1,5 +1,0 @@
-pymupdf
-tqdm
-pandas
-requests
-python-pptx

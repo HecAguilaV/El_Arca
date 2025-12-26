@@ -54,13 +54,25 @@
         <!-- Visor -->
         <div class="flex-1 w-full bg-white relative overflow-hidden">
             <!-- Permitimos PDF y GDoc (que el backend convertirá a PDF) -->
+            <!-- Permitimos PDF y GDoc (que el backend convertirá a PDF) -->
             {#if $archivoAbierto.formato === ".pdf" || $archivoAbierto.formato === "gdoc"}
-                <iframe
-                    src={urlArchivo}
-                    title="Visor PDF"
-                    class="w-full h-full border-none block"
-                    allowfullscreen
-                ></iframe>
+                <object
+                    data={urlArchivo}
+                    type="application/pdf"
+                    class="w-full h-full block"
+                >
+                    <div class="flex items-center justify-center h-full">
+                        <p class="text-stone-500">
+                            Tu navegador no puede visualizar este PDF.
+                            <a
+                                href={urlArchivo}
+                                download
+                                class="text-indigo-600 underline"
+                                >Descárgalo aquí</a
+                            >.
+                        </p>
+                    </div>
+                </object>
             {:else}
                 <div
                     class="h-full flex flex-col items-center justify-center p-6 text-center"

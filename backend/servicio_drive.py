@@ -14,19 +14,33 @@ class ServicioDrive:
         self.folder_id = os.getenv("DRIVE_FOLDER_ID", "1LvZG-uIqhYCGMtV2xA54SHzuXOn30dng")
         self.api_key = os.getenv("DRIVE_API_KEY") 
         self.ruta_credenciales = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "credentials.json")
-        self.service = None
+        # Nuevo: Soporte para contenido JSON en variable de entorno (Render/Vercel friendly)
+        self.contenido_credenciales = os.getenv("GOOGLE_CREDENTIALS_JSON") 
         
-        # 2. Prioridad: Service Account (Credenciales completas)
-        if os.path.exists(self.ruta_credenciales):
-            try:
-                creds = service_account.Credentials.from_service_account_file(
+        self.service = None
+        self.creds = None
+        
+        # 2. Prioridad: Service Account (JSON directo o Archivo)
+        try:
+            if self.contenido_credenciales:
+                import json
+                info = json.loads(self.contenido_credenciales)
+                self.creds = service_account.Credentials.from_service_account_info(
+                    info, scopes=['https://www.googleapis.com/auth/drive.readonly']
+                )
+                logger.info("Conectado a Google Drive mediante JSON en Variable de Entorno.")
+            elif os.path.exists(self.ruta_credenciales):
+                self.creds = service_account.Credentials.from_service_account_file(
                     self.ruta_credenciales, 
                     scopes=['https://www.googleapis.com/auth/drive.readonly']
                 )
-                self.service = build('drive', 'v3', credentials=creds)
-                logger.info("Conectado a Google Drive mediante Service Account.")
-            except Exception as e:
-                logger.error(f"Error con Service Account: {e}")
+                logger.info("Conectado a Google Drive mediante Archivo de Credenciales.")
+
+            if self.creds:
+                self.service = build('drive', 'v3', credentials=self.creds)
+
+        except Exception as e:
+            logger.error(f"Error autenticando Service Account: {e}")
 
         # 3. Fallback: API Key (Solo para carpetas públicas)
         if not self.service and self.api_key:
@@ -70,31 +84,47 @@ class ServicioDrive:
 
     def generar_descarga(self, file_id):
         """Generador que hace streaming directo desde Drive sin usar RAM."""
-        if not self.service: return None
+        if not self.service: 
+            yield b""
+            return
         
         try:
-            # 1. Obtener token fresco
-            creds = self.service._http.credentials
-            if creds.expired:
-                from google.auth.transport.requests import Request
-                creds.refresh(Request())
-            token = creds.token
-
-            # 2. Determinar si exportar o descargar
-            meta = self.service.files().get(fileId=file_id, fields="mimeType").execute()
-            mime_type = meta.get('mimeType', '')
-            
-            url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
-            
-            if mime_type.startswith('application/vnd.google-apps'):
-                # Exportar Docs a PDF
-                url = f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=application/pdf"
-            
-            # 3. Request con Streaming activado
             import requests
-            headers = {"Authorization": f"Bearer {token}"}
             
-            with requests.get(url, headers=headers, stream=True) as r:
+            # URLs Base
+            url_descarga = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+            headers = {}
+            params = {}
+
+            # Estrategia de Autenticación para el Request manual
+            if self.creds:
+                # Caso A: Service Account (Token Bearer)
+                if self.creds.expired:
+                    from google.auth.transport.requests import Request
+                    self.creds.refresh(Request())
+                headers["Authorization"] = f"Bearer {self.creds.token}"
+            elif self.api_key:
+                # Caso B: API Key (Parametro key)
+                params["key"] = self.api_key
+            else:
+                logger.error("No hay credenciales válidas para streaming.")
+                yield b""
+                return
+
+            # Determinar si es exportación (Docs) o descarga directa
+            try:
+                meta = self.service.files().get(fileId=file_id, fields="mimeType").execute()
+                mime_type = meta.get('mimeType', '')
+                
+                if mime_type.startswith('application/vnd.google-apps'):
+                    url_descarga = f"https://www.googleapis.com/drive/v3/files/{file_id}/export"
+                    params["mimeType"] = "application/pdf"
+            except Exception:
+                # Si falla obtener metadatos, intentamos descarga directa ciega
+                pass
+
+            # Streaming Request
+            with requests.get(url_descarga, headers=headers, params=params, stream=True) as r:
                 r.raise_for_status()
                 for chunk in r.iter_content(chunk_size=1024 * 1024): # 1MB chunks
                     yield chunk

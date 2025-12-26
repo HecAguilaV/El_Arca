@@ -17,6 +17,7 @@
     let totalPages = 0;
     let cargando = true;
     let errorCarga = false;
+    let errorMensaje = "";
 
     // Importamos PDF.js desde CDN para no engrosar build
     const PDFJS_URL =
@@ -64,10 +65,9 @@
         } catch (e) {
             console.error("Error crítico cargando PDF:", e);
             errorCarga = true;
+            errorMensaje = e.message || "Error desconocido";
             cargando = false;
-            toast.error(
-                "No se pudo cargar el documento. Protegido o error de red.",
-            );
+            toast.error("Error cargando PDF: " + errorMensaje);
         }
     });
 
@@ -162,7 +162,7 @@
 
 {#if $archivoAbierto}
     <div
-        class="fixed inset-0 z-50 flex flex-col h-full w-full {claseContenedor} animate-in fade-in zoom-in duration-300"
+        class="absolute inset-0 z-20 flex flex-col h-full w-full {claseContenedor} animate-in fade-in zoom-in duration-300"
     >
         <!-- Barra Superior -->
         <div
@@ -255,7 +255,14 @@
                 <div
                     class="flex flex-col items-center justify-center text-center text-white/50 gap-4 mt-20"
                 >
-                    <p>No se pudo visualizar el documento.</p>
+                    <p class="text-red-400 font-bold">Error Carga:</p>
+                    <code
+                        class="text-xs bg-black/20 p-2 rounded max-w-[80%] break-all"
+                        >{errorMensaje || "Sin detalles"}</code
+                    >
+                    <p class="text-xs opacity-70">
+                        Posible bloqueo de red o archivo dañado.
+                    </p>
                     <a
                         href={urlArchivo}
                         download

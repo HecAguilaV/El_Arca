@@ -18,7 +18,12 @@ if not DATABASE_URL:
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-engine = create_engine(DATABASE_URL)
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    # pool_pre_ping=True es CRÍTICO para Neon/Render (Postgres)
+    # Verifica que la conexión siga viva antes de usarla, evitando "SSL connection closed"
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=1800)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def obtener_db():

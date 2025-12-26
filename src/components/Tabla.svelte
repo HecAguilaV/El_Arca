@@ -101,6 +101,8 @@
         >
         <input
             type="text"
+            id="busqueda-tabla"
+            name="busqueda"
             bind:value={busqueda}
             placeholder="Título, autor, categoría o etiquetas..."
             class="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-sm {claseInput}"

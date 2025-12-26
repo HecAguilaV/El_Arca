@@ -233,6 +233,8 @@
                 : 'bg-black/20 border-white/10'} rounded-lg"
         >
             <textarea
+                id="chat-input"
+                name="consulta"
                 bind:value={entradaUsuario}
                 on:keydown={manejarTeclas}
                 placeholder="Introduzca su consulta..."

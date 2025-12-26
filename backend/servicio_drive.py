@@ -68,42 +68,39 @@ class ServicioDrive:
             logger.error(f"Error listando archivos de Drive: {e}")
             return []
 
-    def descargar_archivo(self, file_id):
-        """Descarga un archivo a memoria. Si es Google Doc, lo exporta a PDF."""
+    def generar_descarga(self, file_id):
+        """Generador que hace streaming directo desde Drive sin usar RAM."""
         if not self.service: return None
         
         try:
-            # 1. Obtener metadatos para saber el tipo MIME
+            # 1. Obtener token fresco
+            creds = self.service._http.credentials
+            if creds.expired:
+                from google.auth.transport.requests import Request
+                creds.refresh(Request())
+            token = creds.token
+
+            # 2. Determinar si exportar o descargar
             meta = self.service.files().get(fileId=file_id, fields="mimeType").execute()
             mime_type = meta.get('mimeType', '')
             
-            request = None
+            url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
             
-            # 2. Si es documento nativo de Google, EXPORTAMOS a PDF
             if mime_type.startswith('application/vnd.google-apps'):
-                logger.info(f"Exportando Google Doc {file_id} a PDF...")
-                request = self.service.files().export_media(
-                    fileId=file_id, 
-                    mimeType='application/pdf'
-                )
-            else:
-                # 3. Si es binario (PDF, imagenes), DESCARGAMOS directo
-                logger.info(f"Descargando binario {file_id}...")
-                request = self.service.files().get_media(fileId=file_id)
-
-            fh = io.BytesIO()
-            # Descargar en chunks de 5MB para mejor performance
-            downloader = MediaIoBaseDownload(fh, request, chunksize=5*1024*1024)
-            done = False
-            while done is False:
-                status, done = downloader.next_chunk()
-                if status:
-                    logger.debug(f"Descargando {file_id}: {int(status.progress() * 100)}%")
+                # Exportar Docs a PDF
+                url = f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=application/pdf"
             
-            fh.seek(0)
-            return fh
+            # 3. Request con Streaming activado
+            import requests
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            with requests.get(url, headers=headers, stream=True) as r:
+                r.raise_for_status()
+                for chunk in r.iter_content(chunk_size=1024 * 1024): # 1MB chunks
+                    yield chunk
+
         except Exception as e:
-            logger.error(f"Error descargando archivo {file_id}: {e}")
-            return None
+            logger.error(f"Error en streaming {file_id}: {e}")
+            yield b""
 
 servicio_drive = ServicioDrive()

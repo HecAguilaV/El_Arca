@@ -83,15 +83,14 @@ def ver_libro_drive(file_id: str):
     """Proxy para visualizar archivos directamente desde Google Drive sin hacerlos públicos."""
     from servicio_drive import servicio_drive
     
-    stream = servicio_drive.descargar_archivo(file_id)
-    if not stream:
-        raise HTTPException(status_code=404, detail="Archivo no encontrado o inaccesible en Drive.")
+    # Usamos generador para Streaming Real (cero RAM, velocidad instantánea)
+    stream_generator = servicio_drive.generar_descarga(file_id)
     
     # Determinamos MIME type básico (asumimos PDF por defecto para el visor)
     media_type = "application/pdf"
     
     return StreamingResponse(
-        stream, 
+        stream_generator, 
         media_type=media_type,
         headers={"Content-Disposition": "inline; filename=documento.pdf"}
     )

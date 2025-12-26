@@ -1,5 +1,12 @@
+fastapi
+uvicorn
+python-dotenv
+google-generativeai
+python-multipart
 pymupdf
 tqdm
 pandas
 requests
 python-pptx
+chromadb
+typing-extensions

@@ -89,10 +89,17 @@ def ver_libro_drive(file_id: str):
     # Determinamos MIME type básico (asumimos PDF por defecto para el visor)
     media_type = "application/pdf"
     
+    headers = {
+        "Content-Disposition": "inline; filename=documento.pdf",
+        "Content-Type": "application/pdf",
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "no-cache"
+    }
+    
     return StreamingResponse(
         stream_generator, 
         media_type=media_type,
-        headers={"Content-Disposition": "inline; filename=documento.pdf"}
+        headers=headers
     )
 
 # --- ENDPOINTS: LIBROS FÍSICOS ---

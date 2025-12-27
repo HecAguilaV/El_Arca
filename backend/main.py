@@ -84,21 +84,19 @@ def ver_libro_drive(file_id: str):
     from servicio_drive import servicio_drive
     
     # Usamos generador para Streaming Real (cero RAM, velocidad instantánea)
-    stream_generator = servicio_drive.generar_descarga(file_id)
-    
-    # Determinamos MIME type básico (asumimos PDF por defecto para el visor)
-    media_type = "application/pdf"
+    # Usamos generador para Streaming Real
+    stream_generator, mime_type, filename = servicio_drive.generar_descarga(file_id)
     
     headers = {
-        "Content-Disposition": "inline; filename=documento.pdf",
-        "Content-Type": "application/pdf",
+        "Content-Disposition": f'inline; filename="{filename}"',
+        "Content-Type": mime_type,
         "X-Content-Type-Options": "nosniff",
         "Cache-Control": "no-cache"
     }
     
     return StreamingResponse(
         stream_generator, 
-        media_type=media_type,
+        media_type=mime_type,
         headers=headers
     )
 

@@ -111,26 +111,42 @@ class ServicioDrive:
                 yield b""
                 return
 
-            # Determinar si es exportación (Docs) o descarga directa
+            # Determinar MIME type real y nombre
+            mime_type_real = "application/octet-stream"
+            nombre_archivo = "archivo_descarga"
+            
             try:
-                meta = self.service.files().get(fileId=file_id, fields="mimeType").execute()
-                mime_type = meta.get('mimeType', '')
+                meta = self.service.files().get(
+                    fileId=file_id, 
+                    fields="mimeType, name"
+                ).execute()
                 
-                if mime_type.startswith('application/vnd.google-apps'):
+                mime_type_real = meta.get('mimeType', 'application/octet-stream')
+                nombre_archivo = meta.get('name', 'archivo')
+
+                if mime_type_real.startswith('application/vnd.google-apps'):
+                    # Si es Doc/Sheet/Slide nativo, forzar PDF
                     url_descarga = f"https://www.googleapis.com/drive/v3/files/{file_id}/export"
                     params["mimeType"] = "application/pdf"
-            except Exception:
-                # Si falla obtener metadatos, intentamos descarga directa ciega
-                pass
+                    mime_type_real = "application/pdf"
+                    nombre_archivo += ".pdf"
+            
+            except Exception as e:
+                logger.warning(f"No se pudieron obtener metadatos para {file_id}: {e}")
 
             # Streaming Request
-            with requests.get(url_descarga, headers=headers, params=params, stream=True) as r:
-                r.raise_for_status()
-                for chunk in r.iter_content(chunk_size=1024 * 1024): # 1MB chunks
-                    yield chunk
+            def iterador_stream():
+                with requests.get(url_descarga, headers=headers, params=params, stream=True) as r:
+                    r.raise_for_status()
+                    for chunk in r.iter_content(chunk_size=1024 * 1024): 
+                        yield chunk
+            
+            return iterador_stream(), mime_type_real, nombre_archivo
 
         except Exception as e:
             logger.error(f"Error en streaming {file_id}: {e}")
-            yield b""
+            # Retornar generador vacío y mime fallback
+            def empty_gen(): yield b""
+            return empty_gen(), "application/octet-stream", "error.bin"
 
 servicio_drive = ServicioDrive()

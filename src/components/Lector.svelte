@@ -41,6 +41,9 @@
                 $archivoAbierto.formato !== "gdoc")
         ) {
             cargando = false;
+            errorCarga = true;
+            errorMensaje =
+                "Formato no visualizable (" + $archivoAbierto.formato + ")";
             return;
         }
 
@@ -255,19 +258,32 @@
                 <div
                     class="flex flex-col items-center justify-center text-center text-white/50 gap-4 mt-20"
                 >
-                    <p class="text-red-400 font-bold">Error Carga:</p>
-                    <code
-                        class="text-xs bg-black/20 p-2 rounded max-w-[80%] break-all"
-                        >{errorMensaje || "Sin detalles"}</code
-                    >
-                    <p class="text-xs opacity-70">
-                        Posible bloqueo de red o archivo dañado.
+                    <p class="text-stone-300 font-serif text-xl italic mb-2">
+                        Vista Previa No Disponible
                     </p>
+                    <div
+                        class="bg-black/30 p-4 rounded-xl border border-white/5 max-w-[80%]"
+                    >
+                        <p
+                            class="text-xs uppercase font-bold tracking-widest opacity-60 mb-2"
+                        >
+                            Razón:
+                        </p>
+                        <code class="text-xs text-red-300 block mb-4"
+                            >{errorMensaje ||
+                                "Formato no soportado por el visor web"}</code
+                        >
+                        <p class="text-[10px] opacity-50">
+                            Archivos Word, Powerpoint o imágenes deben
+                            descargarse.
+                        </p>
+                    </div>
+
                     <a
                         href={urlArchivo}
                         download
-                        class="px-4 py-2 bg-indigo-600 text-white rounded text-xs uppercase font-bold"
-                        >Descargar PDF</a
+                        class="mt-4 px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs uppercase font-bold tracking-widest hover:bg-indigo-500 transition-all shadow-lg hover:shadow-indigo-500/20"
+                        >Descargar Archivo</a
                     >
                 </div>
             {:else}

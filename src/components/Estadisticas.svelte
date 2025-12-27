@@ -63,8 +63,31 @@
             >
                 {tituloSeccion}
             </h3>
-            {#if !esBibliotecaFisica}
-                <button
+            <div class="flex gap-2">
+                {#if !esBibliotecaFisica}
+                    <button
+                        on:click={async () => {
+                            const { api } = await import("../lib/api");
+                            import("svelte-french-toast").then((t) => t.default.loading("Verificando sistema...", { duration: 1500 }));
+                            try {
+                                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://el-arca.onrender.com";
+                                const res = await fetch(`${API_BASE_URL}/sistema/diagnostico`);
+                                const data = await res.json();
+                                const estado = `DB: ${data.base_datos} | Drive: ${data.google_drive.mensaje}`;
+                                import("svelte-french-toast").then((t) => {
+                                    if(data.google_drive.estado === 'ok') t.default.success(estado, { duration: 5000 });
+                                    else t.default.error(estado, { duration: 10000 });
+                                });
+                            } catch (e) {
+                                import("svelte-french-toast").then((t) => t.default.error("Error conectando al servidor", { duration: 3000 }));
+                            }
+                        }}
+                        class="text-[9px] uppercase font-bold tracking-widest px-3 py-1.5 border rounded-lg opacity-50 hover:opacity-100 transition-all {esClaro ? 'border-stone-400 text-stone-600' : 'border-white/30 text-white'}"
+                        title="Verificar Estado del Sistema"
+                    >
+                        🩺
+                    </button>
+                    <button
                     on:click={async () => {
                         const { api } = await import("../lib/api");
                         const { cargarTodo } = await import("../lib/stores");
@@ -95,7 +118,9 @@
                 >
                     ☁️ Sincronizar Drive
                 </button>
-            {/if}
+                </button>
+                {/if}
+            </div>
         </div>
         <p
             class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-br {gradienteNumero}"

@@ -149,4 +149,16 @@ class ServicioDrive:
             def empty_gen(): yield b""
             return empty_gen(), "application/octet-stream", "error.bin"
 
+    
+    def probar_conexion(self):
+        """Intenta listar 1 archivo para validar credenciales."""
+        if not self.service:
+            return {"estado": "error", "mensaje": "Servicio no inicializado"}
+        try:
+            self.service.files().list(pageSize=1, fields="files(id)").execute()
+            tipo = "Service Account" if self.creds else "API Key"
+            return {"estado": "ok", "mensaje": f"Conectado vía {tipo}"}
+        except Exception as e:
+            return {"estado": "error", "mensaje": str(e)}
+
 servicio_drive = ServicioDrive()

@@ -61,6 +61,40 @@ def leer_raiz():
         "version": "2.0.0"
     }
 
+# --- DIAGNÓSTICO ---
+@app.get("/sistema/diagnostico", tags=["Estado"])
+def diagnostico_sistema(db: Session = Depends(obtener_db)):
+    """Verifica conectividad con DB, Google Drive y Vector Store."""
+    resultado = {
+        "base_datos": "conectada",
+        "google_drive": "desconocido",
+        "vector_store": "desconocido",
+        "mime_type_test": "ok"
+    }
+
+    # 1. DB Check
+    try:
+        db.execute("SELECT 1")
+    except Exception as e:
+        resultado["base_datos"] = f"Error: {e}"
+
+    # 2. Drive Check
+    from servicio_drive import servicio_drive
+    resultado["google_drive"] = servicio_drive.probar_conexion()
+
+    # 3. Vector Check
+    try:
+        # Simple ping implícito
+        if servicio_vectorial and servicio_vectorial.client:
+             servicio_vectorial.client.heartbeat()
+             resultado["vector_store"] = "conectado"
+        else:
+             resultado["vector_store"] = "no inicializado"
+    except Exception as e:
+         resultado["vector_store"] = f"Error: {e}"
+
+    return resultado
+
 # --- ENDPOINTS: LIBROS DIGITALES ---
 
 @app.get("/libros/digitales", response_model=List[schemas.LibroDigital], tags=["Biblioteca Digital"])

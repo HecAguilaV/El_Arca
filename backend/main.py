@@ -35,7 +35,9 @@ app = FastAPI(
 # Configurar CORS para desarrollo local y producción (Vercel)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "https://el-arca.onrender.com"],
+    allow_origin_regex="https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -117,22 +119,30 @@ def ver_libro_drive(file_id: str):
     """Proxy para visualizar archivos directamente desde Google Drive sin hacerlos públicos."""
     from servicio_drive import servicio_drive
     
-    # Usamos generador para Streaming Real (cero RAM, velocidad instantánea)
-    # Usamos generador para Streaming Real
-    stream_generator, mime_type, filename = servicio_drive.generar_descarga(file_id)
-    
-    headers = {
-        "Content-Disposition": f'inline; filename="{filename}"',
-        "Content-Type": mime_type,
-        "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "no-cache"
-    }
-    
-    return StreamingResponse(
-        stream_generator, 
-        media_type=mime_type,
-        headers=headers
-    )
+    try:
+        # Usamos generador para Streaming Real (cero RAM, velocidad instantánea)
+        stream_generator, mime_type, filename = servicio_drive.generar_descarga(file_id)
+        
+        # Validar si el generador es válido (servicio_drive devuelve generador vacío en error)
+        if mime_type == "application/octet-stream" and filename == "error.bin":
+            raise HTTPException(status_code=404, detail="Archivo no encontrado o inaccesible en Drive.")
+
+        headers = {
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "Content-Type": mime_type,
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-cache",
+            "Access-Control-Allow-Origin": "*" # Header manual de seguridad por si falla middleware en streaming
+        }
+        
+        return StreamingResponse(
+            stream_generator, 
+            media_type=mime_type,
+            headers=headers
+        )
+    except Exception as e:
+        print(f"Error sirviendo archivo {file_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
 # --- ENDPOINTS: LIBROS FÍSICOS ---
 

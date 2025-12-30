@@ -56,7 +56,10 @@
         scale = 1.0;
 
         const urlArchivo = `${API_BASE_URL}/libros/ver/${$archivoAbierto.ruta}`;
-        const extension = $archivoAbierto.formato?.toLowerCase() || "";
+        const formatoRaw = $archivoAbierto.formato?.toLowerCase() || "";
+        const extension = formatoRaw.startsWith(".")
+            ? formatoRaw
+            : `.${formatoRaw}`;
 
         try {
             if (extension === ".pdf") {
@@ -71,6 +74,12 @@
                     "PowerPoint requiere descarga o conversión externa.",
                 );
             } else {
+                // Intento fall-through si es PDF pero venía sin punto o distinto
+                if (formatoRaw.includes("pdf")) {
+                    tipoVisor = "pdf";
+                    await cargarPDF(urlArchivo);
+                    return;
+                }
                 throw new Error(
                     `Formato ${extension} no soportado por el visor web.`,
                 );

@@ -35,9 +35,7 @@ app = FastAPI(
 # Configurar CORS para desarrollo local y producción (Vercel)
 app.add_middleware(
     CORSMiddleware,
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://el-arca.onrender.com"],
-    allow_origin_regex="https://.*\.vercel\.app",
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

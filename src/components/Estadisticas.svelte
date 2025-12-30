@@ -68,57 +68,82 @@
                     <button
                         on:click={async () => {
                             const { api } = await import("../lib/api");
-                            import("svelte-french-toast").then((t) => t.default.loading("Verificando sistema...", { duration: 1500 }));
+                            import("svelte-french-toast").then((t) =>
+                                t.default.loading("Verificando sistema...", {
+                                    duration: 1500,
+                                }),
+                            );
                             try {
-                                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://el-arca.onrender.com";
-                                const res = await fetch(`${API_BASE_URL}/sistema/diagnostico`);
+                                const API_BASE_URL =
+                                    import.meta.env.VITE_API_BASE_URL ||
+                                    "https://el-arca.onrender.com";
+                                const res = await fetch(
+                                    `${API_BASE_URL}/sistema/diagnostico`,
+                                );
                                 const data = await res.json();
                                 const estado = `DB: ${data.base_datos} | Drive: ${data.google_drive.mensaje}`;
                                 import("svelte-french-toast").then((t) => {
-                                    if(data.google_drive.estado === 'ok') t.default.success(estado, { duration: 5000 });
-                                    else t.default.error(estado, { duration: 10000 });
+                                    if (data.google_drive.estado === "ok")
+                                        t.default.success(estado, {
+                                            duration: 5000,
+                                        });
+                                    else
+                                        t.default.error(estado, {
+                                            duration: 10000,
+                                        });
                                 });
                             } catch (e) {
-                                import("svelte-french-toast").then((t) => t.default.error("Error conectando al servidor", { duration: 3000 }));
+                                import("svelte-french-toast").then((t) =>
+                                    t.default.error(
+                                        "Error conectando al servidor",
+                                        { duration: 3000 },
+                                    ),
+                                );
                             }
                         }}
-                        class="text-[9px] uppercase font-bold tracking-widest px-3 py-1.5 border rounded-lg opacity-50 hover:opacity-100 transition-all {esClaro ? 'border-stone-400 text-stone-600' : 'border-white/30 text-white'}"
+                        class="text-[9px] uppercase font-bold tracking-widest px-3 py-1.5 border rounded-lg opacity-50 hover:opacity-100 transition-all {esClaro
+                            ? 'border-stone-400 text-stone-600'
+                            : 'border-white/30 text-white'}"
                         title="Verificar Estado del Sistema"
                     >
                         🩺
                     </button>
                     <button
-                    on:click={async () => {
-                        const { api } = await import("../lib/api");
-                        const { cargarTodo } = await import("../lib/stores");
-                        try {
-                            import("svelte-french-toast").then((t) =>
-                                t.default.loading("Conectando con Drive...", {
-                                    duration: 2000,
-                                }),
+                        on:click={async () => {
+                            const { api } = await import("../lib/api");
+                            const { cargarTodo } = await import(
+                                "../lib/stores"
                             );
-                            await api.libros.sincronizarDrive();
-                            import("svelte-french-toast").then((t) =>
-                                t.default.success(
-                                    "Sincronización rápida iniciada. Los libros aparecerán en breve.",
-                                ),
-                            );
-                            setTimeout(cargarTodo, 3000);
-                        } catch (e) {
-                            import("svelte-french-toast").then((t) =>
-                                t.default.error(
-                                    "Error: Acceso denegado o Drive no configurada",
-                                ),
-                            );
-                        }
-                    }}
-                    class="text-[10px] uppercase font-bold tracking-widest px-4 py-2 border rounded-lg {esClaro
-                        ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                        : 'border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20'} transition-all shadow-sm"
-                >
-                    ☁️ Sincronizar Drive
-                </button>
-                </button>
+                            try {
+                                import("svelte-french-toast").then((t) =>
+                                    t.default.loading(
+                                        "Conectando con Drive...",
+                                        {
+                                            duration: 2000,
+                                        },
+                                    ),
+                                );
+                                await api.libros.sincronizarDrive();
+                                import("svelte-french-toast").then((t) =>
+                                    t.default.success(
+                                        "Sincronización rápida iniciada. Los libros aparecerán en breve.",
+                                    ),
+                                );
+                                setTimeout(cargarTodo, 3000);
+                            } catch (e) {
+                                import("svelte-french-toast").then((t) =>
+                                    t.default.error(
+                                        "Error: Acceso denegado o Drive no configurada",
+                                    ),
+                                );
+                            }
+                        }}
+                        class="text-[10px] uppercase font-bold tracking-widest px-4 py-2 border rounded-lg {esClaro
+                            ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                            : 'border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20'} transition-all shadow-sm"
+                    >
+                        ☁️ Sincronizar Drive
+                    </button>
                 {/if}
             </div>
         </div>

@@ -3,7 +3,7 @@ export class ServicioGemini {
         // Prioridad: 1. LocalStorage (Usuario) 2. Variable de Entorno (Vercel)
         this.claveAPI = localStorage.getItem("arca_ai_key") || import.meta.env.VITE_GEMINI_API_KEY || "";
         this.historial = [];
-        this.modelo = "gemini-2.0-flash";
+        this.modelo = "gemini-2.5-flash";
 
         this.personas = {
             reformado: "Actúa como un teólogo reformado experto. Cita a Calvino, Sproul y la Confesión de Westminster. Enfatiza la soberanía de Dios, la gracia irresistible y las doctrinas de la gracia. Tono académico pero pastoral.",

@@ -148,7 +148,7 @@
   class="min-h-screen transition-colors duration-700 {claseFondo} {claseTexto} font-sans selection:bg-indigo-500/30"
 >
   <div
-    class="max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col min-h-screen md:h-screen md:overflow-hidden relative"
+    class="max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col min-h-screen relative"
   >
     <!-- CABECERA -->
     <header
@@ -177,8 +177,7 @@
           </div>
         </div>
 
-        <!-- Widgets Móviles (Solo Tema y Música por espacio) -->
-        <!-- Widgets Móviles (Solo Tema y Música por espacio) -->
+        <!-- Widgets Móviles -->
         <div class="flex md:hidden gap-2 items-center">
           <button
             on:click={alternarTema}
@@ -267,25 +266,28 @@
       </div>
     </header>
 
-    <!-- ÁREA PRINCIPAL (Desktop: Grid Fixed / Mobile: Flex Scroll) -->
-    <main
-      class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-6 relative md:overflow-hidden"
-    >
-      <!-- SECCIÓN 1: BIBLIOTECA (Siempre visible arriba en móvil) -->
-      <div
-        class="flex flex-col gap-4 md:gap-6 md:h-full md:overflow-hidden min-h-[500px]"
-      >
+    <!-- ÁREA PRINCIPAL (Layout Flexible / Scroll) -->
+    <main class="flex-1 flex flex-col gap-12 relative">
+      <!-- SECCIÓN 1: BIBLIOTECA -->
+      <section class="flex flex-col gap-6">
         {#if $cargando}
-          <div class="flex-1 flex items-center justify-center p-10">
+          <div class="flex-1 flex items-center justify-center p-20">
             <span class="text-sm uppercase tracking-[0.2em] animate-pulse"
               >Sincronizando Archivos...</span
             >
           </div>
         {:else}
-          <div class="flex-shrink-0 flex flex-col gap-4">
-            <div class="flex justify-between items-center">
+          <div class="flex flex-col gap-6">
+            <div
+              class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+            >
+              <h2
+                class="text-xs uppercase font-bold tracking-[0.2em] opacity-60"
+              >
+                Biblioteca & Recursos
+              </h2>
               <nav
-                class="flex p-1 rounded-xl border {claseBorde} {claseTarjeta} self-start"
+                class="flex p-1 rounded-xl border {claseBorde} {claseTarjeta}"
               >
                 <button
                   on:click={() => (subPestañaIzquierda = "digital")}
@@ -320,80 +322,92 @@
             />
           </div>
 
-          <!-- Contenedor Tabla/Visor con altura fija en móvil para scroll interno -->
+          <!-- Contenedor Principal de Lectura/Tabla -->
+          <!-- Altura mínima considerable, pero crece con el contenido -->
           <div
-            class="flex-1 md:overflow-hidden h-[600px] md:h-auto rounded-xl border {claseBorde} {esClaro
+            class="min-h-[600px] rounded-xl border {claseBorde} {esClaro
               ? 'bg-white shadow-sm'
-              : 'bg-black/10 backdrop-blur-sm'} relative"
+              : 'bg-black/10 backdrop-blur-sm'} relative overflow-hidden transition-all duration-500"
+            class:h-[85vh]={$archivoAbierto}
           >
             {#if subPestañaIzquierda === "digital"}
               {#if $archivoAbierto}
                 <Lector {esClaro} />
               {/if}
-              <Tabla datos={$biblioteca} {esClaro} />
+              <div
+                class={$archivoAbierto
+                  ? "invisible h-0 overflow-hidden"
+                  : "block h-full"}
+              >
+                <Tabla datos={$biblioteca} {esClaro} />
+              </div>
             {:else}
               <BibliotecaFisica {esClaro} />
             {/if}
           </div>
         {/if}
-      </div>
+      </section>
 
-      <!-- SECCIÓN 2: HERRAMIENTAS (Debajo en móvil) -->
-      <div
-        class="flex flex-col gap-4 md:h-full md:overflow-hidden min-h-[600px] pb-10 md:pb-0"
-      >
-        <!-- Selector de Sub-pestaña -->
-        <nav
-          class="flex flex-wrap p-1 rounded-xl border {claseBorde} {claseTarjeta} self-start"
+      <!-- SECCIÓN 2: HERRAMIENTAS DE ESTUDIO -->
+      <section class="flex flex-col gap-6 pb-20">
+        <div
+          class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
         >
-          <button
-            on:click={() => (subPestañaDerecha = "notas")}
-            class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-            'notas'
-              ? esClaro
-                ? 'bg-indigo-100 text-indigo-900'
-                : 'bg-white/10 text-white'
-              : 'opacity-40 hover:opacity-100'}"
+          <h2 class="text-xs uppercase font-bold tracking-[0.2em] opacity-60">
+            Área de Estudio
+          </h2>
+          <nav
+            class="flex flex-wrap p-1 rounded-xl border {claseBorde} {claseTarjeta}"
           >
-            Notas
-          </button>
-          <button
-            on:click={() => (subPestañaDerecha = "asistente")}
-            class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-            'asistente'
-              ? esClaro
-                ? 'bg-indigo-100 text-indigo-900'
-                : 'bg-white/10 text-white'
-              : 'opacity-40 hover:opacity-100'}"
-          >
-            Asistente
-          </button>
-          <button
-            on:click={() => (subPestañaDerecha = "biblia")}
-            class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-            'biblia'
-              ? esClaro
-                ? 'bg-indigo-100 text-indigo-900'
-                : 'bg-white/10 text-white'
-              : 'opacity-40 hover:opacity-100'}"
-          >
-            Biblia
-          </button>
-          <button
-            on:click={() => (subPestañaDerecha = "diccionario")}
-            class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-            'diccionario'
-              ? esClaro
-                ? 'bg-indigo-100 text-indigo-900'
-                : 'bg-white/10 text-white'
-              : 'opacity-40 hover:opacity-100'}"
-          >
-            Diccionario
-          </button>
-        </nav>
+            <button
+              on:click={() => (subPestañaDerecha = "notas")}
+              class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+              'notas'
+                ? esClaro
+                  ? 'bg-indigo-100 text-indigo-900'
+                  : 'bg-white/10 text-white'
+                : 'opacity-40 hover:opacity-100'}"
+            >
+              Notas
+            </button>
+            <button
+              on:click={() => (subPestañaDerecha = "asistente")}
+              class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+              'asistente'
+                ? esClaro
+                  ? 'bg-indigo-100 text-indigo-900'
+                  : 'bg-white/10 text-white'
+                : 'opacity-40 hover:opacity-100'}"
+            >
+              Asistente
+            </button>
+            <button
+              on:click={() => (subPestañaDerecha = "biblia")}
+              class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+              'biblia'
+                ? esClaro
+                  ? 'bg-indigo-100 text-indigo-900'
+                  : 'bg-white/10 text-white'
+                : 'opacity-40 hover:opacity-100'}"
+            >
+              Biblia
+            </button>
+            <button
+              on:click={() => (subPestañaDerecha = "diccionario")}
+              class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+              'diccionario'
+                ? esClaro
+                  ? 'bg-indigo-100 text-indigo-900'
+                  : 'bg-white/10 text-white'
+                : 'opacity-40 hover:opacity-100'}"
+            >
+              Diccionario
+            </button>
+          </nav>
+        </div>
 
         <div
-          class="flex-1 h-[600px] md:h-full relative overflow-hidden rounded-xl border {claseBorde} {esClaro
+          class="h-[700px] w-full relative overflow-hidden rounded-xl border {claseBorde} {esClaro
             ? 'bg-white shadow-sm'
             : 'bg-white/5'}"
         >
@@ -415,12 +429,12 @@
             </div>
           {/if}
         </div>
-      </div>
+      </section>
     </main>
 
-    <!-- PIE DE PÁGINA (Desktop Only) -->
+    <!-- PIE DE PÁGINA -->
     <footer
-      class="hidden md:flex mt-8 flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-opacity pb-10"
+      class="flex mt-8 flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-opacity pb-10"
     >
       <div class="text-[10px] font-medium tracking-tight">
         &copy; {new Date().getFullYear()} Héctor Aguila

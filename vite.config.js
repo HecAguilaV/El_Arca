@@ -30,6 +30,10 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // Force update behavior
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         // Cachear fuentes y assets estáticos
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
       }

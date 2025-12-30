@@ -442,7 +442,7 @@
       <div
         class="text-[10px] font-bold tracking-widest mt-1 uppercase cursor-default"
       >
-        >Un Soñador con Poca Ram 👨🏻‍💻
+        >Un Soñador con Poca Ram 👨🏻‍💻 <span class="opacity-50 ml-2">v2.1</span>
       </div>
     </footer>
   </div>

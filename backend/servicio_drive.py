@@ -84,9 +84,11 @@ class ServicioDrive:
 
     def generar_descarga(self, file_id):
         """Generador que hace streaming directo desde Drive sin usar RAM."""
+        # Helper para generador vacío
+        def empty_gen(): yield b""
+
         if not self.service: 
-            yield b""
-            return
+            return empty_gen(), "application/octet-stream", "error.bin"
         
         try:
             import requests
@@ -108,8 +110,7 @@ class ServicioDrive:
                 params["key"] = self.api_key
             else:
                 logger.error("No hay credenciales válidas para streaming.")
-                yield b""
-                return
+                return empty_gen(), "application/octet-stream", "error.bin"
 
             # Determinar MIME type real y nombre
             mime_type_real = "application/octet-stream"

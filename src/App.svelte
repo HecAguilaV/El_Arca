@@ -195,15 +195,22 @@
 
           // Lógica de Crossfade (si faltan 10s y hay música sonando)
           if (segundosTemporizador <= 10 && !musicaPausada && elementoAudio) {
-            // Reducir volumen linealmente
+            // Asegurar que el volumen baje suavemente hasta 0
+            // Si el volumen inicial es 0.5, bajar 0.05 por segundo llega a 0 en 10s.
             const nuevoVol = Math.max(0, elementoAudio.volume - 0.05);
             elementoAudio.volume = nuevoVol;
           }
         } else {
+          // Fin del temporizador
           reproducirSonidoFin();
+
+          // Detener música explícitamente
+          if (!musicaPausada) {
+            musicaPausada = true; // Activa bind:paused
+            if (elementoAudio) elementoAudio.volume = 0.5; // Resetear volumen para la próxima
+          }
+
           detenerTemporizador();
-          // Restaurar volumen si se quiere volver a usar
-          if (elementoAudio) elementoAudio.volume = 0.5;
         }
       }, 1000);
     }

@@ -56,14 +56,13 @@
             >
         </div>
 
-            <input
-                type="text"
-                bind:value={termino}
-                on:keydown={manejarTecla}
-                placeholder="Concepto teológico..."
-                class="w-full px-4 py-2 text-xs font-bold uppercase tracking-widest rounded border focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all {claseInput}"
-            />
-        </div>
+        <input
+            type="text"
+            bind:value={termino}
+            on:keydown={manejarTecla}
+            placeholder="Concepto teológico..."
+            class="w-full px-4 py-2 text-xs font-bold uppercase tracking-widest rounded border focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all {claseInput}"
+        />
     </div>
 
     <!-- Contenido -->

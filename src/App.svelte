@@ -26,8 +26,23 @@
 
   // Estado Local
   let mostrarBienvenida = false;
-  let subPestañaIzquierda = "digital"; // 'digital', 'fisica'
-  let subPestañaDerecha = "notas"; // 'notas', 'asistente', 'biblia', 'diccionario'
+
+  // Dual Workbench State
+  let herramientaIzquierda = "biblioteca";
+  let herramientaDerecha = "notas";
+  let focoLayout = "ambos"; // 'ambos', 'izquierda', 'derecha'
+
+  // Opciones de Herramientas
+  const OPCIONES_HERRAMIENTAS = [
+    { id: "biblioteca", label: "Biblioteca", icono: "📚" },
+    { id: "lector", label: "Lector / Visualizador", icono: "📄" },
+    { id: "biblioteca_fisica", label: "Biblioteca Física", icono: "📖" },
+    { id: "notas", label: "Cuaderno de Notas", icono: "✏️" },
+    { id: "asistente", label: "Asistente Teológico", icono: "🤖" },
+    { id: "biblia", label: "Santa Biblia", icono: "✝️" },
+    { id: "diccionario", label: "Diccionario", icono: "📕" },
+  ];
+
   let tiempoActual = new Date();
   let intervaloTiempo;
 
@@ -66,7 +81,6 @@
 
   function actualizarTema(hora) {
     if ($tema !== "auto") return;
-    // Lógica auto-tema si se desea mantener
   }
 
   function alternarTema() {
@@ -84,14 +98,58 @@
     mostrarBienvenida = false;
   }
 
-  onMount(async () => {
-    // Cargar datos iniciales desde la API
-    await cargarTodo();
+  // --- NUEVAS FUNCIONES DE UTILIDAD (Migradas de Estadisticas) ---
 
+  async function verificarSistema() {
+    const { api } = await import("./lib/api");
+    import("svelte-french-toast").then((t) =>
+      t.default.loading("Verificando sistema...", { duration: 1500 }),
+    );
+    try {
+      const API_BASE_URL =
+        import.meta.env.VITE_API_BASE_URL || "https://el-arca.onrender.com";
+      const res = await fetch(`${API_BASE_URL}/sistema/diagnostico`);
+      const data = await res.json();
+      const estado = `DB: ${data.base_datos} | Drive: ${data.google_drive.mensaje || "OK"}`;
+
+      import("svelte-french-toast").then((t) => {
+        if (
+          data.google_drive.estado === "ok" ||
+          data.google_drive.mensaje === "Credenciales configuradas"
+        )
+          t.default.success("Sistema Operativo", { duration: 4000 });
+        else t.default.error(estado, { duration: 6000 });
+      });
+    } catch (e) {
+      import("svelte-french-toast").then((t) =>
+        t.default.error("Error conectando al servidor"),
+      );
+    }
+  }
+
+  async function sincronizarDrive() {
+    const { api } = await import("./lib/api");
+    try {
+      import("svelte-french-toast").then((t) =>
+        t.default.loading("Conectando con Drive...", { duration: 2000 }),
+      );
+      await api.libros.sincronizarDrive();
+      import("svelte-french-toast").then((t) =>
+        t.default.success("Sincronización iniciada."),
+      );
+      setTimeout(cargarTodo, 3000);
+    } catch (e) {
+      import("svelte-french-toast").then((t) =>
+        t.default.error("Error: Acceso denegado"),
+      );
+    }
+  }
+
+  onMount(async () => {
+    await cargarTodo();
     if (!$usuario || $usuario === "Estudiante") {
       mostrarBienvenida = true;
     }
-
     intervaloTiempo = setInterval(() => {
       tiempoActual = new Date();
     }, 1000);
@@ -103,7 +161,7 @@
     clearInterval(intervaloFade);
   });
 
-  // Temporizador
+  // Temporizador Mejorado
   function alternarTemporizador() {
     if (temporizadorActivo) {
       detenerTemporizador();
@@ -122,12 +180,26 @@
     if (segundosTemporizador === 0) segundosTemporizador = 45 * 60;
   }
 
+  function ajustarTemporizador(minutos) {
+    segundosTemporizador = Math.max(0, segundosTemporizador + minutos * 60);
+  }
+
   function formatearTiempo(seg) {
     const m = Math.floor(seg / 60)
       .toString()
       .padStart(2, "0");
     const s = (seg % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
+  }
+
+  // Auto-activar Lector si se abre un archivo
+  $: if (
+    $archivoAbierto &&
+    herramientaIzquierda !== "lector" &&
+    herramientaDerecha !== "lector"
+  ) {
+    // Preferencia: Abrir en Izquierda si está libre o es biblioteca, si no, donde sea
+    herramientaIzquierda = "lector";
   }
 
   // Clases Reactivas basadas en el tema
@@ -206,7 +278,25 @@
       </div>
 
       <!-- Widgets Desktop -->
-      <div class="hidden md:flex items-center gap-6">
+      <div class="hidden md:flex items-center gap-4">
+        <!-- Botones de Sistema (Movidos de Estadisticas) -->
+        <div class="flex gap-2 mr-4 border-r {claseBorde} pr-4">
+          <button
+            on:click={verificarSistema}
+            class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-[10px] hover:scale-105 transition-transform"
+            title="Diagnóstico de Sistema"
+          >
+            🩺
+          </button>
+          <button
+            on:click={sincronizarDrive}
+            class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-[10px] hover:scale-105 transition-transform"
+            title="Sincronizar Drive"
+          >
+            ☁️
+          </button>
+        </div>
+
         <!-- Tema -->
         <button
           on:click={alternarTema}
@@ -233,17 +323,35 @@
           src="/ambient.mp3"
         ></audio>
 
-        <!-- Temporizador -->
-        <button
-          on:click={alternarTemporizador}
-          class="flex items-center gap-3 px-4 py-2 rounded-xl border {claseBorde} {claseTarjeta} {temporizadorActivo
-            ? 'ring-1 ring-indigo-500/50'
-            : ''}"
-        >
-          <span class="text-lg font-mono font-bold"
-            >{formatearTiempo(segundosTemporizador)}</span
+        <!-- Temporizador Flexible -->
+        <div class="flex items-center gap-2 group relative">
+          <!-- Controles flotantes (aparecen en hover) -->
+          <div
+            class="absolute -top-8 left-1/2 -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
           >
-        </button>
+            <button
+              on:click={() => ajustarTemporizador(5)}
+              class="px-2 py-1 text-[9px] bg-indigo-500 text-white rounded shadow hover:bg-indigo-400"
+              >+5m</button
+            >
+            <button
+              on:click={() => ajustarTemporizador(-5)}
+              class="px-2 py-1 text-[9px] bg-red-500 text-white rounded shadow hover:bg-red-400"
+              >-5m</button
+            >
+          </div>
+
+          <button
+            on:click={alternarTemporizador}
+            class="flex items-center gap-3 px-4 py-2 rounded-xl border {claseBorde} {claseTarjeta} {temporizadorActivo
+              ? 'ring-1 ring-indigo-500/50'
+              : ''} hover:ring-1 hover:ring-indigo-500/30 transition-all cursor-pointer"
+          >
+            <span class="text-lg font-mono font-bold"
+              >{formatearTiempo(segundosTemporizador)}</span
+            >
+          </button>
+        </div>
 
         <!-- Reloj -->
         <div class="text-right hidden md:block border-l {claseBorde} pl-6">
@@ -266,183 +374,158 @@
       </div>
     </header>
 
-    <!-- ÁREA PRINCIPAL (Layout Flexible / Scroll) -->
-    <main class="flex-1 flex flex-col lg:flex-row-reverse gap-8 relative">
-      <!-- SECCIÓN 1: BIBLIOTECA (Ahora Lado Izquierdo VISUAL en Desktop por row-reverse, espera...) -->
-      <!-- El usuario quiere: VISUALIZACION (Lector) a la IZQUIERDA. HERRAMIENTAS a la DERECHA. -->
-      <!-- Actualmente está: Columna 1 (Biblioteca) -> Columna 2 (Herramientas). -->
-      <!-- Si es row normal: Biblioteca (Izquierda) | Herramientas (Derecha). -->
-      <!-- El usuario dijo: "asistente... lado derecho y visualizacion... lado izquierdo". -->
-      <!-- ¡Eso YA es así! Quizás quiere decir que el LECTOR (que está dentro de Biblioteca) ocupe más espacio o sea el foco. -->
-      <!-- O quizás la confusión viene de móviles. En móviles es columna. -->
-      <!-- Voy a mantener el orden DOM lógico pero asegurar que Biblioteca esté a la izquierda. -->
-      <!-- Re-leyendo: "quisiera ver la posibilidad de que la parte de asistente... este en el lado derecho". -->
-      <!-- Actualmente: <main class="flex-1 flex flex-col gap-12 relative">. NO es row. Es COLUMNA. -->
-      <!-- Ah! En Desktop (md/lg) NO hay flex-row en el main. Es una sola columna gigante hacia abajo. -->
-      <!-- Por eso el usuario dice "no tengamos que restringirnos a una pagina estatica". -->
-      <!-- Voy a cambiarlo a Grid o Flex Row en Desktop para tener 2 columnas. -->
+    <!-- MESA DE TRABAJO DUAL (Dual Workbench) -->
+    <main
+      class="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-8 relative overflow-hidden h-[calc(100vh-140px)]"
+    >
+      <!-- ZONA IZQUIERDA (Principal o Flexible) -->
+      <section
+        class="flex flex-col gap-4 transition-all duration-500 ease-in-out relative {focoLayout ===
+        'derecha'
+          ? 'lg:w-[0%] opacity-0 overflow-hidden'
+          : focoLayout === 'izquierda'
+            ? 'lg:w-full'
+            : 'lg:w-1/2'} h-full"
+      >
+        <!-- Selector de Herramienta Izquierda -->
+        <nav
+          class="flex overflow-x-auto gap-2 p-1 border-b {claseBorde} no-scrollbar"
+        >
+          {#each OPCIONES_HERRAMIENTAS as opcion}
+            <button
+              on:click={() => (herramientaIzquierda = opcion.id)}
+              class="px-3 py-1.5 rounded-lg text-[9px] uppercase font-bold tracking-widest whitespace-nowrap transition-all {herramientaIzquierda ===
+              opcion.id
+                ? esClaro
+                  ? 'bg-indigo-100 text-indigo-900'
+                  : 'bg-white/20 text-white'
+                : 'opacity-40 hover:opacity-100'}"
+            >
+              {opcion.icono}
+              {opcion.label}
+            </button>
+          {/each}
+        </nav>
 
-      <!-- SECCIÓN IZQUIERDA: LECTOR Y BIBLIOTECA (70%) -->
-      <section class="flex flex-col gap-6 lg:w-[70%]">
-        {#if $cargando}
-          <div class="flex-1 flex items-center justify-center p-20">
-            <span class="text-sm uppercase tracking-[0.2em] animate-pulse"
-              >Sincronizando Archivos...</span
-            >
-          </div>
-        {:else}
-          <div class="flex flex-col gap-6">
-            <div
-              class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-            >
-              <h2
-                class="text-xs uppercase font-bold tracking-[0.2em] opacity-60"
-              >
-                Biblioteca y Recursos
-              </h2>
-              <nav
-                class="flex p-1 rounded-xl border {claseBorde} {claseTarjeta}"
-              >
-                <button
-                  on:click={() => (subPestañaIzquierda = "digital")}
-                  class="px-4 md:px-5 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaIzquierda ===
-                  'digital'
-                    ? esClaro
-                      ? 'bg-indigo-100 text-indigo-900'
-                      : 'bg-white/10 text-white'
-                    : 'opacity-40 hover:opacity-100'}"
-                >
-                  Digital
-                </button>
-                <button
-                  on:click={() => (subPestañaIzquierda = "fisica")}
-                  class="px-4 md:px-5 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaIzquierda ===
-                  'fisica'
-                    ? esClaro
-                      ? 'bg-indigo-100 text-indigo-900'
-                      : 'bg-white/10 text-white'
-                    : 'opacity-40 hover:opacity-100'}"
-                >
-                  Física
-                </button>
-              </nav>
+        <!-- Contenido Izquierda -->
+        <div
+          class="flex-1 relative rounded-xl border {claseBorde} {claseTarjeta} overflow-hidden"
+        >
+          {#if herramientaIzquierda === "biblioteca"}
+            <div class="h-full overflow-y-auto p-4">
+              <!-- Reemplazamos Estadisticas con algo simple si se requiere, o directo la Tabla -->
+              <Tabla datos={$biblioteca} {esClaro} />
             </div>
-
-            <Estadisticas
-              datos={subPestañaIzquierda === "digital"
-                ? $biblioteca
-                : $librosFisicos}
-              {esClaro}
-            />
-          </div>
-
-          <!-- Contenedor Principal de Lectura/Tabla -->
-          <div
-            class="min-h-[600px] rounded-xl border {claseBorde} {esClaro
-              ? 'bg-white shadow-sm'
-              : 'bg-black/10 backdrop-blur-sm'} relative overflow-hidden transition-all duration-500"
-            class:h-[85vh]={$archivoAbierto}
-          >
-            {#if subPestañaIzquierda === "digital"}
-              {#if $archivoAbierto}
-                <Lector {esClaro} />
-              {/if}
-              <div
-                class={$archivoAbierto
-                  ? "invisible h-0 overflow-hidden"
-                  : "block h-full"}
-              >
-                <Tabla datos={$biblioteca} {esClaro} />
-              </div>
+          {:else if herramientaIzquierda === "lector"}
+            {#if $archivoAbierto}
+              <Lector {esClaro} />
             {:else}
-              <BibliotecaFisica {esClaro} />
+              <div
+                class="h-full flex items-center justify-center opacity-40 text-xs tracking-widest uppercase"
+              >
+                Selecciona un libro de la biblioteca
+              </div>
             {/if}
-          </div>
-        {/if}
+          {:else if herramientaIzquierda === "biblioteca_fisica"}
+            <BibliotecaFisica {esClaro} />
+          {:else if herramientaIzquierda === "notas"}
+            <div class="h-full w-full absolute inset-0 text-xs">
+              <Cuaderno {esClaro} />
+            </div>
+          {:else if herramientaIzquierda === "asistente"}
+            <AsistenteIA {esClaro} nombreUsuario={$usuario} />
+          {:else if herramientaIzquierda === "biblia"}
+            <WidgetBiblia {esClaro} />
+          {:else if herramientaIzquierda === "diccionario"}
+            <Diccionario {esClaro} />
+          {/if}
+        </div>
       </section>
 
-      <!-- SECCIÓN DERECHA: HERRAMIENTAS (30%) y STICKY -->
-      <section class="flex flex-col gap-6 pb-20 lg:w-[30%]">
-        <div class="lg:sticky lg:top-8 flex flex-col gap-6">
-          <div
-            class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+      <!-- DIVISOR / CONTROLADOR DE FOCO -->
+      <div
+        class="hidden lg:flex flex-col justify-center items-center gap-2 z-10 w-4"
+      >
+        {#if focoLayout === "ambos"}
+          <button
+            on:click={() => (focoLayout = "izquierda")}
+            class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
+            title="Expandir Izquierda">◀</button
           >
-            <h2 class="text-xs uppercase font-bold tracking-[0.2em] opacity-60">
-              Área de Estudio
-            </h2>
-            <nav
-              class="flex flex-wrap p-1 rounded-xl border {claseBorde} {claseTarjeta}"
-            >
-              <button
-                on:click={() => (subPestañaDerecha = "notas")}
-                class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-                'notas'
-                  ? esClaro
-                    ? 'bg-indigo-100 text-indigo-900'
-                    : 'bg-white/10 text-white'
-                  : 'opacity-40 hover:opacity-100'}"
-              >
-                Notas
-              </button>
-              <button
-                on:click={() => (subPestañaDerecha = "asistente")}
-                class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-                'asistente'
-                  ? esClaro
-                    ? 'bg-indigo-100 text-indigo-900'
-                    : 'bg-white/10 text-white'
-                  : 'opacity-40 hover:opacity-100'}"
-              >
-                Asistente
-              </button>
-              <button
-                on:click={() => (subPestañaDerecha = "biblia")}
-                class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-                'biblia'
-                  ? esClaro
-                    ? 'bg-indigo-100 text-indigo-900'
-                    : 'bg-white/10 text-white'
-                  : 'opacity-40 hover:opacity-100'}"
-              >
-                Biblia
-              </button>
-              <button
-                on:click={() => (subPestañaDerecha = "diccionario")}
-                class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-                'diccionario'
-                  ? esClaro
-                    ? 'bg-indigo-100 text-indigo-900'
-                    : 'bg-white/10 text-white'
-                  : 'opacity-40 hover:opacity-100'}"
-              >
-                Diccionario
-              </button>
-            </nav>
-          </div>
+          <button
+            on:click={() => (focoLayout = "derecha")}
+            class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
+            title="Expandir Derecha">▶</button
+          >
+        {:else}
+          <button
+            on:click={() => (focoLayout = "ambos")}
+            class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
+            title="Restaurar Vista Dividida">●</button
+          >
+        {/if}
+      </div>
 
-          <div
-            class="h-[700px] w-full relative overflow-hidden rounded-xl border {claseBorde} {esClaro
-              ? 'bg-white shadow-sm'
-              : 'bg-white/5'}"
-          >
-            {#if subPestañaDerecha === "notas"}
-              <div class="h-full w-full absolute inset-0 text-xs">
-                <Cuaderno {esClaro} />
-              </div>
-            {:else if subPestañaDerecha === "asistente"}
-              <div class="h-full w-full absolute inset-0">
-                <AsistenteIA {esClaro} nombreUsuario={$usuario} />
-              </div>
-            {:else if subPestañaDerecha === "biblia"}
-              <div class="h-full w-full absolute inset-0">
-                <WidgetBiblia {esClaro} />
-              </div>
-            {:else if subPestañaDerecha === "diccionario"}
-              <div class="h-full w-full absolute inset-0">
-                <Diccionario {esClaro} />
+      <!-- ZONA DERECHA (Secundaria o Flexible) -->
+      <section
+        class="flex flex-col gap-4 transition-all duration-500 ease-in-out relative {focoLayout ===
+        'izquierda'
+          ? 'lg:w-[0%] opacity-0 overflow-hidden'
+          : focoLayout === 'derecha'
+            ? 'lg:w-full'
+            : 'lg:w-1/2'} h-full"
+      >
+        <!-- Selector de Herramienta Derecha -->
+        <nav
+          class="flex overflow-x-auto gap-2 p-1 border-b {claseBorde} no-scrollbar justify-end"
+        >
+          {#each OPCIONES_HERRAMIENTAS as opcion}
+            <button
+              on:click={() => (herramientaDerecha = opcion.id)}
+              class="px-3 py-1.5 rounded-lg text-[9px] uppercase font-bold tracking-widest whitespace-nowrap transition-all {herramientaDerecha ===
+              opcion.id
+                ? esClaro
+                  ? 'bg-indigo-100 text-indigo-900'
+                  : 'bg-white/20 text-white'
+                : 'opacity-40 hover:opacity-100'}"
+            >
+              {opcion.icono}
+              {opcion.label}
+            </button>
+          {/each}
+        </nav>
+
+        <!-- Contenido Derecha -->
+        <div
+          class="flex-1 relative rounded-xl border {claseBorde} {claseTarjeta} overflow-hidden"
+        >
+          {#if herramientaDerecha === "biblioteca"}
+            <div class="h-full overflow-y-auto p-4">
+              <Tabla datos={$biblioteca} {esClaro} />
+            </div>
+          {:else if herramientaDerecha === "lector"}
+            {#if $archivoAbierto}
+              <Lector {esClaro} />
+            {:else}
+              <div
+                class="h-full flex items-center justify-center opacity-40 text-xs tracking-widest uppercase"
+              >
+                Selecciona un libro de la biblioteca
               </div>
             {/if}
-          </div>
+          {:else if herramientaDerecha === "biblioteca_fisica"}
+            <BibliotecaFisica {esClaro} />
+          {:else if herramientaDerecha === "notas"}
+            <div class="h-full w-full absolute inset-0 text-xs">
+              <Cuaderno {esClaro} />
+            </div>
+          {:else if herramientaDerecha === "asistente"}
+            <AsistenteIA {esClaro} nombreUsuario={$usuario} />
+          {:else if herramientaDerecha === "biblia"}
+            <WidgetBiblia {esClaro} />
+          {:else if herramientaDerecha === "diccionario"}
+            <Diccionario {esClaro} />
+          {/if}
         </div>
       </section>
     </main>

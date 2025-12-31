@@ -1,9 +1,10 @@
+<script>
   import { onMount, onDestroy } from "svelte";
   import { Toaster } from "svelte-french-toast";
   // Importar Firebase
   import { auth, loginWithGoogle, logout } from "./lib/firebase";
   import { onAuthStateChanged } from "firebase/auth";
-  
+
   import {
     tema,
     usuario,
@@ -98,21 +99,27 @@
 
   // --- AUTENTICACIÓN ---
   async function manejarLogin() {
-      try {
-          await loginWithGoogle();
-          import("svelte-french-toast").then(t => t.default.success("Sesión iniciada"));
-      } catch (e) {
-          import("svelte-french-toast").then(t => t.default.error("Error al iniciar sesión"));
-      }
+    try {
+      await loginWithGoogle();
+      import("svelte-french-toast").then((t) =>
+        t.default.success("Sesión iniciada"),
+      );
+    } catch (e) {
+      import("svelte-french-toast").then((t) =>
+        t.default.error("Error al iniciar sesión"),
+      );
+    }
   }
 
   async function manejarLogout() {
-      try {
-          await logout();
-          import("svelte-french-toast").then(t => t.default.success("Sesión cerrada"));
-      } catch (e) {
-          console.error(e);
-      }
+    try {
+      await logout();
+      import("svelte-french-toast").then((t) =>
+        t.default.success("Sesión cerrada"),
+      );
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   function manejarGuardadoUsuario(evento) {
@@ -172,23 +179,23 @@
   onMount(async () => {
     // Escuchar cambios de Auth
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-        usuarioFirebase = user;
-        if (user) {
-            usuario.set(user.displayName);
-            mostrarBienvenida = false; // Ya no necesitamos el modal si entra con Google
-        } else {
-            // Si no hay user de google, verificar si hay legacy
-            const legacyUser = localStorage.getItem("arca_usuario");
-            if (legacyUser) usuario.set(legacyUser);
-            else {
-                usuario.set(null); 
-                mostrarBienvenida = true;
-            }
+      usuarioFirebase = user;
+      if (user) {
+        usuario.set(user.displayName);
+        mostrarBienvenida = false; // Ya no necesitamos el modal si entra con Google
+      } else {
+        // Si no hay user de google, verificar si hay legacy
+        const legacyUser = localStorage.getItem("arca_usuario");
+        if (legacyUser) usuario.set(legacyUser);
+        else {
+          usuario.set(null);
+          mostrarBienvenida = true;
         }
+      }
     });
 
     await cargarTodo();
-    
+
     intervaloTiempo = setInterval(() => {
       tiempoActual = new Date();
     }, 1000);
@@ -329,26 +336,34 @@
             >
               El Arca
             </h1>
-            
+
             {#if usuarioFirebase}
-                <div class="flex items-center gap-2 mt-1">
-                    {#if usuarioFirebase.photoURL}
-                        <img src={usuarioFirebase.photoURL} alt="User" class="w-4 h-4 rounded-full border border-white/20" />
-                    {/if}
-                    <span
-                    class="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-60 font-bold"
-                    >
-                    {usuarioFirebase.displayName}
-                    </span>
-                    <button on:click={manejarLogout} class="ml-2 text-[8px] text-red-400 hover:text-red-300 uppercase font-bold tracking-wider">(Salir)</button>
-                </div>
-            {:else}
-                <button 
-                    on:click={manejarLogin}
-                    class="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-40 hover:opacity-100 hover:text-indigo-400 font-bold mt-1 text-left transition-all"
+              <div class="flex items-center gap-2 mt-1">
+                {#if usuarioFirebase.photoURL}
+                  <img
+                    src={usuarioFirebase.photoURL}
+                    alt="User"
+                    class="w-4 h-4 rounded-full border border-white/20"
+                  />
+                {/if}
+                <span
+                  class="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-60 font-bold"
                 >
-                    Inicia Sesión >
-                </button>
+                  {usuarioFirebase.displayName}
+                </span>
+                <button
+                  on:click={manejarLogout}
+                  class="ml-2 text-[8px] text-red-400 hover:text-red-300 uppercase font-bold tracking-wider"
+                  >(Salir)</button
+                >
+              </div>
+            {:else}
+              <button
+                on:click={manejarLogin}
+                class="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-40 hover:opacity-100 hover:text-indigo-400 font-bold mt-1 text-left transition-all"
+              >
+                Inicia Sesión >
+              </button>
             {/if}
           </div>
         </div>

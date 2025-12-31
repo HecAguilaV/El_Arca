@@ -267,9 +267,23 @@
     </header>
 
     <!-- ÁREA PRINCIPAL (Layout Flexible / Scroll) -->
-    <main class="flex-1 flex flex-col gap-12 relative">
-      <!-- SECCIÓN 1: BIBLIOTECA -->
-      <section class="flex flex-col gap-6">
+    <main class="flex-1 flex flex-col lg:flex-row-reverse gap-8 relative">
+      <!-- SECCIÓN 1: BIBLIOTECA (Ahora Lado Izquierdo VISUAL en Desktop por row-reverse, espera...) -->
+      <!-- El usuario quiere: VISUALIZACION (Lector) a la IZQUIERDA. HERRAMIENTAS a la DERECHA. -->
+      <!-- Actualmente está: Columna 1 (Biblioteca) -> Columna 2 (Herramientas). -->
+      <!-- Si es row normal: Biblioteca (Izquierda) | Herramientas (Derecha). -->
+      <!-- El usuario dijo: "asistente... lado derecho y visualizacion... lado izquierdo". -->
+      <!-- ¡Eso YA es así! Quizás quiere decir que el LECTOR (que está dentro de Biblioteca) ocupe más espacio o sea el foco. -->
+      <!-- O quizás la confusión viene de móviles. En móviles es columna. -->
+      <!-- Voy a mantener el orden DOM lógico pero asegurar que Biblioteca esté a la izquierda. -->
+      <!-- Re-leyendo: "quisiera ver la posibilidad de que la parte de asistente... este en el lado derecho". -->
+      <!-- Actualmente: <main class="flex-1 flex flex-col gap-12 relative">. NO es row. Es COLUMNA. -->
+      <!-- Ah! En Desktop (md/lg) NO hay flex-row en el main. Es una sola columna gigante hacia abajo. -->
+      <!-- Por eso el usuario dice "no tengamos que restringirnos a una pagina estatica". -->
+      <!-- Voy a cambiarlo a Grid o Flex Row en Desktop para tener 2 columnas. -->
+
+      <!-- SECCIÓN IZQUIERDA: LECTOR Y BIBLIOTECA (70%) -->
+      <section class="flex flex-col gap-6 lg:w-[70%]">
         {#if $cargando}
           <div class="flex-1 flex items-center justify-center p-20">
             <span class="text-sm uppercase tracking-[0.2em] animate-pulse"
@@ -284,7 +298,7 @@
               <h2
                 class="text-xs uppercase font-bold tracking-[0.2em] opacity-60"
               >
-                Biblioteca & Recursos
+                Biblioteca y Recursos
               </h2>
               <nav
                 class="flex p-1 rounded-xl border {claseBorde} {claseTarjeta}"
@@ -323,7 +337,6 @@
           </div>
 
           <!-- Contenedor Principal de Lectura/Tabla -->
-          <!-- Altura mínima considerable, pero crece con el contenido -->
           <div
             class="min-h-[600px] rounded-xl border {claseBorde} {esClaro
               ? 'bg-white shadow-sm'
@@ -348,86 +361,88 @@
         {/if}
       </section>
 
-      <!-- SECCIÓN 2: HERRAMIENTAS DE ESTUDIO -->
-      <section class="flex flex-col gap-6 pb-20">
-        <div
-          class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-        >
-          <h2 class="text-xs uppercase font-bold tracking-[0.2em] opacity-60">
-            Área de Estudio
-          </h2>
-          <nav
-            class="flex flex-wrap p-1 rounded-xl border {claseBorde} {claseTarjeta}"
+      <!-- SECCIÓN DERECHA: HERRAMIENTAS (30%) y STICKY -->
+      <section class="flex flex-col gap-6 pb-20 lg:w-[30%]">
+        <div class="lg:sticky lg:top-8 flex flex-col gap-6">
+          <div
+            class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
           >
-            <button
-              on:click={() => (subPestañaDerecha = "notas")}
-              class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-              'notas'
-                ? esClaro
-                  ? 'bg-indigo-100 text-indigo-900'
-                  : 'bg-white/10 text-white'
-                : 'opacity-40 hover:opacity-100'}"
+            <h2 class="text-xs uppercase font-bold tracking-[0.2em] opacity-60">
+              Área de Estudio
+            </h2>
+            <nav
+              class="flex flex-wrap p-1 rounded-xl border {claseBorde} {claseTarjeta}"
             >
-              Notas
-            </button>
-            <button
-              on:click={() => (subPestañaDerecha = "asistente")}
-              class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-              'asistente'
-                ? esClaro
-                  ? 'bg-indigo-100 text-indigo-900'
-                  : 'bg-white/10 text-white'
-                : 'opacity-40 hover:opacity-100'}"
-            >
-              Asistente
-            </button>
-            <button
-              on:click={() => (subPestañaDerecha = "biblia")}
-              class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-              'biblia'
-                ? esClaro
-                  ? 'bg-indigo-100 text-indigo-900'
-                  : 'bg-white/10 text-white'
-                : 'opacity-40 hover:opacity-100'}"
-            >
-              Biblia
-            </button>
-            <button
-              on:click={() => (subPestañaDerecha = "diccionario")}
-              class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
-              'diccionario'
-                ? esClaro
-                  ? 'bg-indigo-100 text-indigo-900'
-                  : 'bg-white/10 text-white'
-                : 'opacity-40 hover:opacity-100'}"
-            >
-              Diccionario
-            </button>
-          </nav>
-        </div>
+              <button
+                on:click={() => (subPestañaDerecha = "notas")}
+                class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+                'notas'
+                  ? esClaro
+                    ? 'bg-indigo-100 text-indigo-900'
+                    : 'bg-white/10 text-white'
+                  : 'opacity-40 hover:opacity-100'}"
+              >
+                Notas
+              </button>
+              <button
+                on:click={() => (subPestañaDerecha = "asistente")}
+                class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+                'asistente'
+                  ? esClaro
+                    ? 'bg-indigo-100 text-indigo-900'
+                    : 'bg-white/10 text-white'
+                  : 'opacity-40 hover:opacity-100'}"
+              >
+                Asistente
+              </button>
+              <button
+                on:click={() => (subPestañaDerecha = "biblia")}
+                class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+                'biblia'
+                  ? esClaro
+                    ? 'bg-indigo-100 text-indigo-900'
+                    : 'bg-white/10 text-white'
+                  : 'opacity-40 hover:opacity-100'}"
+              >
+                Biblia
+              </button>
+              <button
+                on:click={() => (subPestañaDerecha = "diccionario")}
+                class="px-4 py-2 rounded-lg text-[9px] md:text-[10px] uppercase font-bold tracking-widest transition-all {subPestañaDerecha ===
+                'diccionario'
+                  ? esClaro
+                    ? 'bg-indigo-100 text-indigo-900'
+                    : 'bg-white/10 text-white'
+                  : 'opacity-40 hover:opacity-100'}"
+              >
+                Diccionario
+              </button>
+            </nav>
+          </div>
 
-        <div
-          class="h-[700px] w-full relative overflow-hidden rounded-xl border {claseBorde} {esClaro
-            ? 'bg-white shadow-sm'
-            : 'bg-white/5'}"
-        >
-          {#if subPestañaDerecha === "notas"}
-            <div class="h-full w-full absolute inset-0 text-xs">
-              <Cuaderno {esClaro} />
-            </div>
-          {:else if subPestañaDerecha === "asistente"}
-            <div class="h-full w-full absolute inset-0">
-              <AsistenteIA {esClaro} nombreUsuario={$usuario} />
-            </div>
-          {:else if subPestañaDerecha === "biblia"}
-            <div class="h-full w-full absolute inset-0">
-              <WidgetBiblia {esClaro} />
-            </div>
-          {:else if subPestañaDerecha === "diccionario"}
-            <div class="h-full w-full absolute inset-0">
-              <Diccionario {esClaro} />
-            </div>
-          {/if}
+          <div
+            class="h-[700px] w-full relative overflow-hidden rounded-xl border {claseBorde} {esClaro
+              ? 'bg-white shadow-sm'
+              : 'bg-white/5'}"
+          >
+            {#if subPestañaDerecha === "notas"}
+              <div class="h-full w-full absolute inset-0 text-xs">
+                <Cuaderno {esClaro} />
+              </div>
+            {:else if subPestañaDerecha === "asistente"}
+              <div class="h-full w-full absolute inset-0">
+                <AsistenteIA {esClaro} nombreUsuario={$usuario} />
+              </div>
+            {:else if subPestañaDerecha === "biblia"}
+              <div class="h-full w-full absolute inset-0">
+                <WidgetBiblia {esClaro} />
+              </div>
+            {:else if subPestañaDerecha === "diccionario"}
+              <div class="h-full w-full absolute inset-0">
+                <Diccionario {esClaro} />
+              </div>
+            {/if}
+          </div>
         </div>
       </section>
     </main>
@@ -442,7 +457,7 @@
       <div
         class="text-[10px] font-bold tracking-widest mt-1 uppercase cursor-default"
       >
-        >Un Soñador con Poca Ram 👨🏻‍💻 <span class="opacity-50 ml-2">v2.1</span>
+        >Un Soñador con Poca Ram 👨🏻‍💻
       </div>
     </footer>
   </div>

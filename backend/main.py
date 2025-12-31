@@ -73,14 +73,22 @@ def diagnostico_sistema(db: Session = Depends(obtener_db)):
     }
 
     # 1. DB Check
+    from sqlalchemy import text
     try:
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
     except Exception as e:
         resultado["base_datos"] = f"Error: {e}"
 
     # 2. Drive Check
-    from servicio_drive import servicio_drive
-    resultado["google_drive"] = servicio_drive.probar_conexion()
+    try:
+        # Check simple de credenciales sin pedir archivos (evita 403 en scopes restringidos)
+        from servicio_drive import servicio_drive
+        if servicio_drive.creds or servicio_drive.api_key:
+             resultado["google_drive"] = {"estado": "ok", "mensaje": "Credenciales configuradas"}
+        else:
+             resultado["google_drive"] = {"estado": "error", "mensaje": "Faltan credenciales"}
+    except Exception as e:
+        resultado["google_drive"] = {"estado": "error", "mensaje": str(e)}
 
     # 3. Vector Check
     try:

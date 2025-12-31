@@ -4,21 +4,19 @@
 
     $: esBibliotecaFisica = datos.length > 0 && "isbn" in datos[0];
 
-    // Conteo de etiquetas / temas
-    $: conteoTemas = datos.reduce((acc, item) => {
-        const etiquetas = esBibliotecaFisica
-            ? item.notas || ""
-            : item.etiquetas || "";
-        if (etiquetas) {
-            etiquetas.split(/[ ,]+/).forEach((et) => {
-                const limpia = et.trim().replace(/[.,]/g, "");
-                if (limpia.length > 3) acc[limpia] = (acc[limpia] || 0) + 1;
-            });
+    // Conteo de Formatos (PDF, DOCX, etc)
+    $: conteoFormatos = datos.reduce((acc, item) => {
+        // Extraer formato del nombre si no existe la propiedad
+        let formato = item.formato ? item.formato.toLowerCase() : "otro";
+        if (formato === "otro" && item.nombre) {
+            const parts = item.nombre.split(".");
+            if (parts.length > 1) formato = parts.pop().toLowerCase();
         }
+        acc[formato] = (acc[formato] || 0) + 1;
         return acc;
     }, {});
 
-    $: temasOrdenados = Object.entries(conteoTemas)
+    $: formatosOrdenados = Object.entries(conteoFormatos)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
 
@@ -177,37 +175,46 @@
         </div>
     </div>
 
-    <!-- Tendencias -->
+    <!-- Formatos (Antes Tematicas) -->
     <div
         class="{claseTarjeta} border rounded-xl p-8 transition-colors duration-500"
     >
         <h3
             class="text-[9px] uppercase tracking-[0.3em] {claseEtiqueta} mb-6 font-bold"
         >
-            Temáticas / Etiquetas
+            Formatos de Archivo
         </h3>
         <div class="space-y-4">
-            {#each temasOrdenados as [nombre, total]}
-                <div class="flex items-center gap-4 group">
+            {#each formatosOrdenados as [formato, cantidad]}
+                <div
+                    class="flex justify-between items-center group cursor-default"
+                >
                     <span
-                        class="w-28 text-[11px] uppercase font-bold tracking-widest {claseTexto} shrink-0 truncate"
-                        >{nombre}</span
+                        class="text-xs font-bold uppercase tracking-widest {claseTexto} group-hover:text-indigo-400 transition-colors"
+                        >.{formato}</span
                     >
-                    <div
-                        class="flex-1 h-1.5 {fondoBarra} rounded-full overflow-hidden"
-                    >
+                    <div class="flex items-center gap-3">
                         <div
-                            class="h-full bg-indigo-500 transition-all duration-700 group-hover:bg-indigo-400"
-                            style="width: {(total / temasOrdenados[0][1]) *
-                                100}%"
-                        ></div>
+                            class="w-24 h-1 {fondoBarra} rounded-full overflow-hidden"
+                        >
+                            <div
+                                class="h-full bg-indigo-500/50 group-hover:bg-indigo-500 transition-all"
+                                style="width: {(cantidad / datos.length) *
+                                    100}%"
+                            ></div>
+                        </div>
+                        <span
+                            class="text-xs font-mono opacity-50 w-6 text-right"
+                            >{cantidad}</span
+                        >
                     </div>
-                    <span
-                        class="w-8 text-right text-[10px] font-mono opacity-50"
-                        >{total}</span
-                    >
                 </div>
             {/each}
+            {#if formatosOrdenados.length === 0}
+                <span class="text-xs opacity-40 italic"
+                    >No hay datos de formatos aún.</span
+                >
+            {/if}
         </div>
     </div>
 </div>

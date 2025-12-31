@@ -259,7 +259,7 @@
 </script>
 
 <div
-    class="flex flex-col h-full {claseContenedor} backdrop-blur-md rounded-xl border overflow-hidden relative transition-colors duration-500 notebook-container"
+    class="flex flex-col h-full w-full {claseContenedor} backdrop-blur-md rounded-xl border overflow-hidden relative transition-colors duration-500 notebook-container"
 >
     {#if vista === "lista"}
         <!-- LISTADO DE ESTUDIOS -->

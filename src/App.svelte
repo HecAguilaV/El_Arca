@@ -467,9 +467,7 @@
           {:else if herramientaIzquierda === "biblioteca_fisica"}
             <BibliotecaFisica {esClaro} />
           {:else if herramientaIzquierda === "notas"}
-            <div class="h-full w-full absolute inset-0 text-xs">
-              <Cuaderno {esClaro} />
-            </div>
+            <Cuaderno {esClaro} />
           {:else if herramientaIzquierda === "asistente"}
             <AsistenteIA {esClaro} nombreUsuario={$usuario} />
           {:else if herramientaIzquierda === "biblia"}
@@ -556,9 +554,7 @@
           {:else if herramientaDerecha === "biblioteca_fisica"}
             <BibliotecaFisica {esClaro} />
           {:else if herramientaDerecha === "notas"}
-            <div class="h-full w-full absolute inset-0 text-xs">
-              <Cuaderno {esClaro} />
-            </div>
+            <Cuaderno {esClaro} />
           {:else if herramientaDerecha === "asistente"}
             <AsistenteIA {esClaro} nombreUsuario={$usuario} />
           {:else if herramientaDerecha === "biblia"}

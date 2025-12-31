@@ -1,3 +1,4 @@
+<script>
     import { fade, scale } from "svelte/transition";
     import { createEventDispatcher } from "svelte";
     import { loginWithGoogle } from "../lib/firebase";
@@ -17,10 +18,15 @@
     }
 
     function manejarInvitado() {
-        if(confirm("¿Entiendes que en Modo Invitado tus notas NO se guardarán en la nube y podrías perderlas si limpias el navegador?")) {
+        if (
+            confirm(
+                "¿Entiendes que en Modo Invitado tus notas NO se guardarán en la nube y podrías perderlas si limpias el navegador?",
+            )
+        ) {
             dispatch("save", "Invitado");
         }
     }
+</script>
 
 <div
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"

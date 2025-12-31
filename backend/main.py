@@ -62,7 +62,8 @@ def evento_inicio():
                 conn.execute(text("SELECT es_favorita FROM notas LIMIT 1"))
             except Exception:
                 print("⚠️ Aplicando migración: Añadiendo columna 'es_favorita' a tabla notas...")
-                conn.execute(text("ALTER TABLE notas ADD COLUMN es_favorita BOOLEAN DEFAULT 0"))
+                # Postgres requiere FALSE literal para booleanos, SQLite lo acepta también.
+                conn.execute(text("ALTER TABLE notas ADD COLUMN es_favorita BOOLEAN DEFAULT FALSE"))
                 conn.commit()
     except Exception as e:
         print(f"Nota sobre migración: {e}")

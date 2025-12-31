@@ -292,11 +292,11 @@
             >
                 {#each $notas as nota (nota.id)}
                     <div
-                        class="{claseTarjeta} text-left p-6 border transition-all flex flex-col h-48 group cursor-pointer"
+                        class="{claseTarjeta} text-left p-6 border transition-all flex flex-col h-48 group cursor-pointer hover:shadow-lg hover:scale-[1.02]"
                         on:click={() => abrirNota(nota.id)}
                     >
                         <span
-                            class="text-[9px] uppercase font-bold tracking-widest opacity-30 mb-2"
+                            class="text-[9px] uppercase font-bold tracking-widest opacity-50 mb-2"
                         >
                             {new Date(
                                 nota.fecha_actualizacion,
@@ -310,7 +310,7 @@
                             {nota.titulo}
                         </h3>
                         <p
-                            class="text-[11px] leading-relaxed opacity-50 line-clamp-3 mb-4"
+                            class="text-[11px] leading-relaxed opacity-60 line-clamp-3 mb-4"
                         >
                             {nota.previsualización}
                         </p>
@@ -321,7 +321,7 @@
                             <button
                                 on:click|stopPropagation={(e) =>
                                     eliminarNotaDesdeLista(nota.id, e)}
-                                class="text-[9px] uppercase font-bold tracking-widest text-red-400/60 hover:text-red-400 transition-colors p-2"
+                                class="text-[9px] uppercase font-bold tracking-widest text-red-500 hover:bg-red-500/10 rounded px-2 py-1 transition-colors"
                             >
                                 Eliminar
                             </button>
@@ -331,9 +331,20 @@
 
                 {#if $notas.length === 0 && !$cargando}
                     <div
-                        class="col-span-full py-20 text-center opacity-30 text-[10px] uppercase font-bold tracking-[0.4em]"
+                        class="col-span-full flex flex-col items-center justify-center py-20 text-center gap-4"
                     >
-                        El cuaderno está en espera de su pluma
+                        <span class="text-4xl opacity-20">✍️</span>
+                        <p
+                            class="text-[10px] uppercase font-bold tracking-[0.3em] opacity-40"
+                        >
+                            Su cuaderno está vacío
+                        </p>
+                        <button
+                            on:click={crearNuevaNota}
+                            class="px-8 py-3 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-500 transition-all text-xs font-bold uppercase tracking-widest"
+                        >
+                            Crear primer estudio
+                        </button>
                     </div>
                 {/if}
             </div>

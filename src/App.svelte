@@ -428,9 +428,7 @@
             : 'lg:w-1/2'} h-full"
       >
         <!-- Selector de Herramienta Izquierda -->
-        <nav
-          class="flex overflow-x-auto gap-2 p-1 border-b {claseBorde} no-scrollbar"
-        >
+        <nav class="flex flex-wrap gap-2 p-1 border-b {claseBorde}">
           {#each OPCIONES_HERRAMIENTAS as opcion}
             <button
               on:click={() => (herramientaIzquierda = opcion.id)}
@@ -520,9 +518,7 @@
             : 'lg:w-1/2'} h-full"
       >
         <!-- Selector de Herramienta Derecha -->
-        <nav
-          class="flex overflow-x-auto gap-2 p-1 border-b {claseBorde} no-scrollbar justify-end"
-        >
+        <nav class="flex flex-wrap gap-2 p-1 border-b {claseBorde} justify-end">
           {#each OPCIONES_HERRAMIENTAS as opcion}
             <button
               on:click={() => (herramientaDerecha = opcion.id)}

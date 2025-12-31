@@ -105,6 +105,21 @@
         }
     }
 
+    async function toggleFavorita(nota) {
+        try {
+            await api.notas.actualizar(nota.id, {
+                ...nota,
+                es_favorita: !nota.es_favorita,
+            });
+            await sincronizarNotas();
+            toast.success(
+                nota.es_favorita ? "Quitado de destacados" : "Nota destacada",
+            );
+        } catch (e) {
+            toast.error("Error al actualizar estado");
+        }
+    }
+
     let tiempoGuardado;
     async function guardarNotaActual(contenido) {
         const nota = $notas.find((n) => n.id === notaActualId);
@@ -122,6 +137,7 @@
             contenido_html: contenido,
             previsualización: extraerPrevisualizacion(contenido),
             palabras_clave: nota.palabras_clave,
+            es_favorita: nota.es_favorita,
         };
 
         clearTimeout(tiempoGuardado);
@@ -302,6 +318,18 @@
                                 nota.fecha_actualizacion,
                             ).toLocaleDateString()}
                         </span>
+
+                        <button
+                            on:click|stopPropagation={() =>
+                                toggleFavorita(nota)}
+                            class="absolute top-4 right-4 text-xl hover:scale-110 transition-transform focus:outline-none"
+                            title={nota.es_favorita
+                                ? "Quitar de destacados"
+                                : "Destacar nota"}
+                        >
+                            {nota.es_favorita ? "⭐" : "☆"}
+                        </button>
+
                         <h3
                             class="font-bold text-lg mb-3 line-clamp-2 {esClaro
                                 ? 'text-stone-800'

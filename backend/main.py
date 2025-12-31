@@ -52,6 +52,20 @@ else:
 @app.on_event("startup")
 def evento_inicio():
     inicializar_base_de_datos()
+    # Migración ligera automática para SQLite (Añadir columna es_favorita si falta)
+    from database import engine
+    from sqlalchemy import text
+    try:
+        with engine.connect() as conn:
+            # Check si la columna existe (solo para SQLite/Postgres simple)
+            try:
+                conn.execute(text("SELECT es_favorita FROM notas LIMIT 1"))
+            except Exception:
+                print("⚠️ Aplicando migración: Añadiendo columna 'es_favorita' a tabla notas...")
+                conn.execute(text("ALTER TABLE notas ADD COLUMN es_favorita BOOLEAN DEFAULT 0"))
+                conn.commit()
+    except Exception as e:
+        print(f"Nota sobre migración: {e}")
 
 @app.get("/", tags=["Estado"])
 def leer_raiz():

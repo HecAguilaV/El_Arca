@@ -578,7 +578,11 @@
       class="flex mt-8 flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-opacity pb-10"
     >
       <div class="text-[10px] font-medium tracking-tight">
-        &copy; {new Date().getFullYear()} Héctor Aguila
+        &copy; {new Date().getFullYear()}
+        <a
+          href="mailto:hdaguila@gmail.com"
+          class="hover:text-indigo-500 transition-colors">Héctor Aguila</a
+        >
       </div>
       <div
         class="text-[10px] font-bold tracking-widest mt-1 uppercase cursor-default"

@@ -57,6 +57,7 @@ class NotaBase(BaseModel):
     contenido_html: str
     previsualización: Optional[str] = ""
     palabras_clave: Optional[str] = ""
+    es_favorita: Optional[bool] = False
 
 class NotaCrear(NotaBase):
     pass

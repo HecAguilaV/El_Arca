@@ -6,15 +6,8 @@
 
     let termino = "";
     let definicion = "";
-    let perspectiva = "reformado";
     let cargando = false;
-
-    const perspectivas = [
-        { id: "reformado", nombre: "Reformada" },
-        { id: "puritano", nombre: "Puritana" },
-        { id: "academico", nombre: "Académica" },
-        { id: "pastoral", nombre: "Pastoral" },
-    ];
+    let perspectiva = "academico_global"; // Valor fijo interno para la API
 
     async function consultar() {
         if (!termino.trim()) return;
@@ -63,31 +56,13 @@
             >
         </div>
 
-        <div class="flex flex-col gap-3">
             <input
                 type="text"
                 bind:value={termino}
                 on:keydown={manejarTecla}
-                placeholder="Término a definir..."
+                placeholder="Concepto teológico..."
                 class="w-full px-4 py-2 text-xs font-bold uppercase tracking-widest rounded border focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all {claseInput}"
             />
-
-            <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {#each perspectivas as p}
-                    <button
-                        on:click={() => {
-                            perspectiva = p.id;
-                            if (termino) consultar();
-                        }}
-                        class="px-3 py-1.5 rounded-lg text-[9px] uppercase font-bold tracking-wider border transition-all whitespace-nowrap
-                        {perspectiva === p.id
-                            ? 'bg-indigo-600 border-indigo-500 text-white'
-                            : 'border-transparent opacity-40 hover:opacity-100 hover:bg-white/5'}"
-                    >
-                        {p.nombre}
-                    </button>
-                {/each}
-            </div>
         </div>
     </div>
 

@@ -161,6 +161,28 @@
     clearInterval(intervaloFade);
   });
 
+  // Audio Context para el "Gong" de meditación
+  let audioCtx;
+  function reproducirSonidoFin() {
+    if (!audioCtx)
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime); // La
+    osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 1.5);
+
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+
+    osc.start();
+    osc.stop(audioCtx.currentTime + 1.5);
+  }
+
   // Temporizador Mejorado
   function alternarTemporizador() {
     if (temporizadorActivo) {
@@ -168,8 +190,21 @@
     } else {
       temporizadorActivo = true;
       intervaloTemporizador = setInterval(() => {
-        if (segundosTemporizador > 0) segundosTemporizador--;
-        else detenerTemporizador();
+        if (segundosTemporizador > 0) {
+          segundosTemporizador--;
+
+          // Lógica de Crossfade (si faltan 10s y hay música sonando)
+          if (segundosTemporizador <= 10 && !musicaPausada && elementoAudio) {
+            // Reducir volumen linealmente
+            const nuevoVol = Math.max(0, elementoAudio.volume - 0.05);
+            elementoAudio.volume = nuevoVol;
+          }
+        } else {
+          reproducirSonidoFin();
+          detenerTemporizador();
+          // Restaurar volumen si se quiere volver a usar
+          if (elementoAudio) elementoAudio.volume = 0.5;
+        }
       }, 1000);
     }
   }
@@ -192,14 +227,19 @@
     return `${m}:${s}`;
   }
 
-  // Auto-activar Lector si se abre un archivo
-  $: if (
-    $archivoAbierto &&
-    herramientaIzquierda !== "lector" &&
-    herramientaDerecha !== "lector"
-  ) {
-    // Preferencia: Abrir en Izquierda si está libre o es biblioteca, si no, donde sea
-    herramientaIzquierda = "lector";
+  // Detectar cambios en archivoAbierto para auto-abrir lector SOLO al inicio
+  let ultimoArchivo = null;
+  $: if ($archivoAbierto !== ultimoArchivo) {
+    if ($archivoAbierto && !ultimoArchivo) {
+      // Si se abre un archivo nuevo y no hay lector visible, abrirlo
+      if (
+        herramientaIzquierda !== "lector" &&
+        herramientaDerecha !== "lector"
+      ) {
+        herramientaIzquierda = "lector";
+      }
+    }
+    ultimoArchivo = $archivoAbierto;
   }
 
   // Clases Reactivas basadas en el tema
@@ -384,7 +424,7 @@
         'derecha'
           ? 'lg:w-[0%] opacity-0 overflow-hidden'
           : focoLayout === 'izquierda'
-            ? 'lg:w-full'
+            ? 'flex-1'
             : 'lg:w-1/2'} h-full"
       >
         <!-- Selector de Herramienta Izquierda -->
@@ -442,28 +482,32 @@
         </div>
       </section>
 
-      <!-- DIVISOR / CONTROLADOR DE FOCO -->
+      <!-- DIVISOR / CONTROLADOR DE FOCO (Sticky para no perderse) -->
       <div
-        class="hidden lg:flex flex-col justify-center items-center gap-2 z-10 w-4"
+        class="hidden lg:flex flex-col justify-center items-center gap-2 z-10 w-4 flex-shrink-0 sticky top-0 h-screen self-start pointer-events-none"
       >
-        {#if focoLayout === "ambos"}
-          <button
-            on:click={() => (focoLayout = "izquierda")}
-            class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
-            title="Expandir Izquierda">◀</button
-          >
-          <button
-            on:click={() => (focoLayout = "derecha")}
-            class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
-            title="Expandir Derecha">▶</button
-          >
-        {:else}
-          <button
-            on:click={() => (focoLayout = "ambos")}
-            class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
-            title="Restaurar Vista Dividida">●</button
-          >
-        {/if}
+        <div
+          class="pointer-events-auto flex flex-col gap-2 bg-black/20 backdrop-blur-sm p-1 rounded-full"
+        >
+          {#if focoLayout === "ambos"}
+            <button
+              on:click={() => (focoLayout = "izquierda")}
+              class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
+              title="Expandir Izquierda">◀</button
+            >
+            <button
+              on:click={() => (focoLayout = "derecha")}
+              class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
+              title="Expandir Derecha">▶</button
+            >
+          {:else}
+            <button
+              on:click={() => (focoLayout = "ambos")}
+              class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
+              title="Restaurar Vista Dividida">●</button
+            >
+          {/if}
+        </div>
       </div>
 
       <!-- ZONA DERECHA (Secundaria o Flexible) -->
@@ -472,7 +516,7 @@
         'izquierda'
           ? 'lg:w-[0%] opacity-0 overflow-hidden'
           : focoLayout === 'derecha'
-            ? 'lg:w-full'
+            ? 'flex-1'
             : 'lg:w-1/2'} h-full"
       >
         <!-- Selector de Herramienta Derecha -->

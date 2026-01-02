@@ -217,6 +217,8 @@ def actualizar_nota(nota_id: int, nota_actualizada: schemas.NotaCrear, db: Sessi
     
     db.commit()
     db.refresh(db_nota)
+    return db_nota
+
 @app.delete("/notas/{nota_id}", tags=["Cuaderno"])
 def eliminar_nota(nota_id: int, db: Session = Depends(obtener_db)):
     db_nota = db.query(models.Nota).filter(models.Nota.id == nota_id).first()

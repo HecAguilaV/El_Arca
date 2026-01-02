@@ -352,41 +352,68 @@
                   {usuarioFirebase.displayName}
                 </span>
                 <button
-                  on:click={manejarLogout}
+                  on:click={async () => {
+                    localStorage.removeItem("arca_usuario"); // Limpiar legacy
+                    usuario.set(null);
+                    await manejarLogout();
+                  }}
                   class="ml-2 text-[8px] text-red-400 hover:text-red-300 uppercase font-bold tracking-wider"
                   >(Salir)</button
                 >
               </div>
             {:else}
-              <button
-                on:click={manejarLogin}
-                class="group flex items-center gap-2 text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-60 hover:opacity-100 hover:text-indigo-400 font-bold mt-1 text-left transition-all"
-              >
-                <!-- Google G Logo (Grayscale to Color on Hover) -->
-                <svg
-                  class="w-3 h-3 grayscale group-hover:grayscale-0 transition-all"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
+              <!-- Botón de Login (o Mostrar Modal si está "atascado" como invitado sin nombre) -->
+              {#if $usuario && !$usuario.includes("Invitado")}
+                <!-- Caso Borde: Usuario Legacy detectado pero sin Firebase -->
+                <div class="flex items-center gap-2 mt-1">
+                  <span
+                    class="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-60 font-bold"
+                  >
+                    {$usuario} (Local)
+                  </span>
+                  <button
+                    on:click={() => {
+                      localStorage.removeItem("arca_usuario");
+                      usuario.set(null);
+                      mostrarBienvenida = true;
+                    }}
+                    class="ml-2 text-[8px] text-indigo-400 hover:text-indigo-300 uppercase font-bold tracking-wider"
+                    >(Conectar)</button
+                  >
+                </div>
+              {:else}
+                <button
+                  on:click={() => {
+                    mostrarBienvenida = true;
+                  }}
+                  class="group flex items-center gap-2 text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-60 hover:opacity-100 hover:text-indigo-400 font-bold mt-1 text-left transition-all"
                 >
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                  />
-                </svg>
-                Inicia Sesión
-              </button>
+                  <!-- Google G Logo (Grayscale to Color on Hover) -->
+                  <svg
+                    class="w-3 h-3 grayscale group-hover:grayscale-0 transition-all"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Inicia Sesión
+                </button>
+              {/if}
             {/if}
           </div>
         </div>
@@ -637,15 +664,17 @@
 
         <!-- Contenido Derecha -->
         <div
-          class="flex-1 relative rounded-xl border {claseBorde} {claseTarjeta} overflow-hidden"
+          class="flex-1 relative rounded-xl border {claseBorde} {claseTarjeta} overflow-hidden min-h-0 flex flex-col"
         >
           {#if herramientaDerecha === "biblioteca"}
-            <div class="h-full overflow-y-auto p-4">
+            <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
               <Tabla datos={$biblioteca} {esClaro} />
             </div>
           {:else if herramientaDerecha === "lector"}
             {#if $archivoAbierto}
-              <Lector {esClaro} />
+              <div class="flex-1 overflow-hidden h-full">
+                <Lector {esClaro} />
+              </div>
             {:else}
               <div
                 class="h-full flex items-center justify-center opacity-40 text-xs tracking-widest uppercase"
@@ -654,7 +683,9 @@
               </div>
             {/if}
           {:else if herramientaDerecha === "biblioteca_fisica"}
-            <BibliotecaFisica {esClaro} />
+            <div class="flex-1 overflow-y-auto">
+              <BibliotecaFisica {esClaro} />
+            </div>
           {:else if herramientaDerecha === "notas"}
             <Cuaderno {esClaro} />
           {:else if herramientaDerecha === "asistente"}

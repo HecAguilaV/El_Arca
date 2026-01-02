@@ -26,20 +26,26 @@ class ServicioIA:
                 logger.error(f"Error inicializando Gemini: {e}")
                 self.model = None
 
-    def definir_termino(self, termino: str, perspectiva: str = "reformado") -> str:
+    def definir_termino(self, termino: str, perspectiva: str = "universal") -> str:
         """Genera una definición teológica para un término dado."""
         if not self.api_key:
             return "Servicio de IA no configurado."
 
-        prompts = {
-            "reformado": "Eres un teólogo reformado de la tradición de Calvino y los Sínodos de Dort. Define el siguiente término con rigor doctrinal y citas bíblicas:",
-            "puritano": "Eres un pastor puritano del siglo XVII. Define el siguiente término con un enfoque práctico y experimental, enfocado en la piedad:",
-            "academico": "Eres un erudito bíblico especializado en exégesis y lenguas originales. Define el siguiente término desde una perspectiva lingüística e histórica:",
-            "pastoral": "Eres un consejero pastoral enfocado en la aplicación del evangelio. Define el siguiente término de forma clara y reconfortante:"
-        }
+        # Prompt Universal: Académico, Neutral, Exegético y Teológico (sin sesgos denominacionales)
+        base_prompt = """
+        Eres un teólogo académico y erudito bíblico. Tu objetivo es definir términos teológicos de manera universal, neutral y rigurosa.
+        
+        Estructura de la respuesta:
+        1. Etimología (Hebreo/Griego si aplica).
+        2. Definición concisa.
+        3. Uso bíblico principal (AT y NT).
+        4. Desarrollo teológico (mencionando brevemente diferentes posturas históricas si hay controversia, pero manteniendo neutralidad).
+        
+        Evita jerga innecesaria. Sé claro, directo y pastoralmente útil pero academicamente sólido.
+        No favorezcas la postura reformada, arminiana, católica u otra, a menos que el término sea específico de esa tradición.
+        """
 
-        enfoque = prompts.get(perspectiva, prompts["reformado"])
-        prompt_final = f"{enfoque}\n\nTérmino: {termino}\n\nRespuesta en español, con un tono formal y profesional."
+        prompt_final = f"{base_prompt}\n\nTérmino a definir: {termino}\n\nRespuesta en español formal:"
 
         try:
             respuesta = self.model.generate_content(prompt_final)

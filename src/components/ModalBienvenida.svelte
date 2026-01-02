@@ -41,11 +41,17 @@
         <div class="absolute top-0 left-0 w-full h-1 bg-indigo-600/30"></div>
 
         <div class="text-center mb-10">
-            <h2 class="text-3xl font-bold mb-4 tracking-tighter uppercase">
+            <h2
+                class="text-3xl font-black mb-4 tracking-tighter uppercase {esClaro
+                    ? 'text-indigo-950'
+                    : 'text-white'}"
+            >
                 Bienvenido a El Arca
             </h2>
             <p
-                class="text-[10px] uppercase font-bold tracking-[0.2em] opacity-40 max-w-[280px] mx-auto leading-relaxed"
+                class="text-[10px] uppercase font-bold tracking-[0.2em] {esClaro
+                    ? 'text-stone-600 opacity-80'
+                    : 'text-stone-300 opacity-70'} max-w-[280px] mx-auto leading-relaxed"
             >
                 Selecciona tu método de acceso para comenzar tu estudio.
             </p>

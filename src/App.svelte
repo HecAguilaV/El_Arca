@@ -664,10 +664,36 @@
 
         <!-- Contenido Derecha -->
         <div
-          class="flex-1 relative rounded-xl border {claseBorde} {claseTarjeta} overflow-hidden min-h-0 flex flex-col"
+          class="flex-1 relative rounded-xl border {claseBorde} {claseTarjeta} overflow-hidden min-h-0 flex flex-col transition-all duration-300 {focoLayout ===
+          'izquierda'
+            ? 'max-h-12'
+            : 'max-h-full'}"
         >
+          <!-- Barra de Título y Colapso (Solo visible si colapsado o para colapsar) -->
+          <div class="absolute top-2 right-2 z-10 lg:hidden">
+            <button
+              on:click={() =>
+                (focoLayout = focoLayout === "derecha" ? "ambos" : "derecha")}
+              class="p-1 rounded bg-black/10 hover:bg-black/20 text-xs"
+            >
+              {focoLayout === "derecha" ? "🔽" : "🔼"}
+            </button>
+          </div>
+
           {#if herramientaDerecha === "biblioteca"}
             <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div class="flex justify-between items-center mb-4 lg:hidden">
+                <h3
+                  class="text-xs font-bold uppercase tracking-widest opacity-50"
+                >
+                  Biblioteca
+                </h3>
+                <button
+                  on:click={() => (focoLayout = "izquierda")}
+                  class="text-xs border px-2 py-1 rounded opacity-50"
+                  >Minimizar</button
+                >
+              </div>
               <Tabla datos={$biblioteca} {esClaro} />
             </div>
           {:else if herramientaDerecha === "lector"}
@@ -687,7 +713,10 @@
               <BibliotecaFisica {esClaro} />
             </div>
           {:else if herramientaDerecha === "notas"}
-            <Cuaderno {esClaro} />
+            <div class="flex-1 h-full flex flex-col">
+              <!-- Boton simplificado de colapso para movil dentro del componente si es necesario -->
+              <Cuaderno {esClaro} />
+            </div>
           {:else if herramientaDerecha === "asistente"}
             <AsistenteIA {esClaro} nombreUsuario={$usuario} />
           {:else if herramientaDerecha === "biblia"}
@@ -713,9 +742,7 @@
       <div
         class="text-[10px] font-bold tracking-widest mt-1 uppercase cursor-default"
       >
-        >Un Soñador con Poca Ram 👨🏻‍💻 <span
-          class="opacity-50 ml-2 font-normal normal-case">v2.0 (Auth)</span
-        >
+        >Un Soñador con Poca Ram 👨🏻‍💻
       </div>
     </footer>
   </div>

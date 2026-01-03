@@ -67,7 +67,11 @@ def evento_inicio():
             except Exception:
                 conn.rollback() # Importante para Postgres: limpiar la transacción fallida antes de seguir
                 print("⚠️ Aplicando migración: Añadiendo columna 'es_favorita' a tabla notas...")
-                # Postgres requiere FALSE literal para booleanos, SQLite lo acepta también.
+                conn.execute(text("ALTER TABLE notas ADD COLUMN es_favorita BOOLEAN DEFAULT FALSE"))
+                conn.commit()
+    except Exception as e:
+        print(f"Nota sobre migración es_favorita: {e}")
+
     # Migración: user_id
     try:
         with engine.connect() as conn:

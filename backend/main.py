@@ -102,15 +102,23 @@ def evento_inicio():
     try:
         from sqlalchemy.orm import Session
         session = Session(bind=engine)
-        # Check si existe alguna nota de sistema
+        
+        # BUSCAR si existe nota de sistema
         nota_sistema = session.query(models.Nota).filter(models.Nota.es_sistema == True).first()
+        
+        contenido_bienvenida = """
+        <h3 class="text-xl font-bold text-amber-500 mb-4">Saludo de Bienvenida</h3>
+        <p class="mb-4">Hola, soy <strong>Héctor</strong>, desarrollador de este espacio de estudio bíblico.</p>
+        <p class="mb-4">A quien comparta esta aplicación o tenga acceso, quiero contarles que esta es una idea nacida de la necesidad de tener un lugar de <em>inmersión</em> en el estudio de la Palabra. Aunque tradicionalmente este estudio ha sido físico, hoy en día la digitalización es parte de nuestras vidas, ¿por qué no consagrar también un espacio digital para ello?</p>
+        <p class="mb-4">Inspirado por herramientas profesionales como <em>Logos (Faithlife)</em> o <em>e-Sword</em>, creé <strong>El Arca</strong>. Aquí he recopilado y centralizado más de 1.200 archivos (libros, manualidades, tareas) acumulados por mi familia y amigos a lo largo del tiempo, conformando esta Biblioteca Digital.</p>
+        <p class="mb-4">Mi compromiso es seguir trabajando para indexar, categorizar y etiquetar cada archivo, facilitando una búsqueda temática profunda y precisa.</p>
+        <p class="mb-4">Finalmente, deseo que tengan una experiencia enriquecedora y que esta herramienta sea un valor agregado real para su estudio teológico y devocional.</p>
+        <hr class="border-gray-700 my-4"/>
+        <p class="text-sm text-gray-400 italic">Cualquier comentario para mejorar es bienvenido. Pueden contactarme al hacer clic en el autor al final de la página.</p>
+        """
+
         if not nota_sistema:
-            print("🌱 Creando nota de bienvenida del sistema...")
-            contenido_bienvenida = """
-            <h3>Bienvenido a El Arca</h3>
-            <p>Esta es una nota del sistema visible para todos los usuarios.</p>
-            <p>Puedes editar esta nota si eres el administrador para poner tus propias instrucciones.</p>
-            """
+            print("🌱 Creando nota de bienvenida del sistema (Nueva)...")
             nueva_nota = models.Nota(
                 titulo="Bienvenido a El Arca (Sistema)",
                 contenido_html=contenido_bienvenida,
@@ -121,10 +129,16 @@ def evento_inicio():
                 user_id=None 
             )
             session.add(nueva_nota)
-            session.commit()
+        else:
+            print("🔄 Actualizando contenido de nota de sistema...")
+            nota_sistema.contenido_html = contenido_bienvenida
+            # Opcional: Actualizar título si es necesario
+            nota_sistema.titulo = "Bienvenido a El Arca (Sistema)"
+            
+        session.commit()
         session.close()
     except Exception as e:
-        print(f"Error creando nota semilla: {e}")
+        print(f"Error gestionando nota semilla: {e}")
 
 @app.get("/", tags=["Estado"])
 def leer_raiz():

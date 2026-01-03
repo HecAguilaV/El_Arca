@@ -473,44 +473,11 @@
               {#if musicaPausada}🔇{:else}🔊{/if}
             </button>
 
-            <!-- Reloj -->
-            <div class="text-right border-l {claseBorde} pl-6">
-              <div class="text-xl font-bold leading-none">
-                {tiempoActual.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </div>
-              <div
-                class="text-[10px] uppercase tracking-widest mt-1 {claseSubTexto}"
-              >
-                {tiempoActual.toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "short",
-                })}
-              </div>
-            </div>
-
-            <!-- Boton Salir -->
-            <button
-              on:click={manejarLogout}
-              class="ml-6 p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors opacity-60 hover:opacity-100 uppercase text-[10px] font-bold tracking-widest border border-transparent hover:border-red-500/30"
-              title="Cerrar Sesión"
+            <!-- Temporizador Flexible (Movido aquí) -->
+            <div
+              class="flex items-center gap-2 group relative border-l {claseBorde} pl-6"
             >
-              Salir
-            </button>
-
-            <audio
-              bind:this={elementoAudio}
-              bind:paused={musicaPausada}
-              loop
-              src="/ambient.mp3"
-            ></audio>
-
-            <!-- Temporizador Flexible -->
-            <div class="flex items-center gap-2 group relative">
-              <!-- Controles flotantes (aparecen en hover) -->
+              <!-- Controles flotantes -->
               <div
                 class="absolute -top-8 left-1/2 -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
               >
@@ -536,6 +503,43 @@
                   >{formatearTiempo(segundosTemporizador)}</span
                 >
               </button>
+            </div>
+
+            <!-- Boton Salir -->
+            <button
+              on:click={manejarLogout}
+              class="ml-6 p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors opacity-60 hover:opacity-100 uppercase text-[10px] font-bold tracking-widest border border-transparent hover:border-red-500/30"
+              title="Cerrar Sesión"
+            >
+              Salir
+            </button>
+
+            <audio
+              bind:this={elementoAudio}
+              bind:paused={musicaPausada}
+              loop
+              src="/ambient.mp3"
+            ></audio>
+
+            <!-- Reloj (Movido aquí, esquina derecha) -->
+            <div
+              class="hidden md:flex flex-col items-end text-right border-l {claseBorde} pl-6"
+            >
+              <div class="text-xl font-bold leading-none">
+                {tiempoActual.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+              <div
+                class="text-[10px] uppercase tracking-widest mt-1 {claseSubTexto}"
+              >
+                {tiempoActual.toLocaleDateString("es-ES", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "short",
+                })}
+              </div>
             </div>
 
             <!-- Reloj Extra Eliminado (Estaba duplicado) -->

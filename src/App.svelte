@@ -134,6 +134,7 @@
 
   async function manejarLogout() {
     try {
+      localStorage.removeItem("arca_usuario"); // Limpiar legacy explicitamente
       await logout();
       import("svelte-french-toast").then((t) =>
         t.default.success("Sesión cerrada"),
@@ -224,20 +225,15 @@
         izquierdaColapsada = false;
         derechaColapsada = false;
 
-        const legacyUser = localStorage.getItem("arca_usuario");
-        if (legacyUser) {
-          usuario.set(legacyUser);
-          await cargarTodo(); // Cargar legacy si existe
-        } else {
-          usuario.set(null);
-          // 4. Vaciar datos sensibles visualmente
-          biblioteca.set([]);
-          notas.set([]);
+        // 4. Reset User y Datos
+        usuario.set(null);
+        usuarioFirebase = null;
+        biblioteca.set([]);
+        notas.set([]);
 
-          mostrarBienvenida = true;
-          // Cargar notas públicas/sistema para que el login no se vea vacío
-          await cargarTodo();
-        }
+        mostrarBienvenida = true;
+
+        // NO llamar cargarTodo() aqui. El usuario debe loguearse primero.
       }
       cargandoAuth = false; // Finalizar carga inicial
     });
@@ -459,13 +455,25 @@
         >
           <!-- Widgets Escritorio -->
           <div class="flex items-center gap-3">
+            <!-- Tema -->
+            <button
+              on:click={alternarTema}
+              class="p-2 mr-2 rounded-lg border {claseBorde} {claseTarjeta} opacity-60 hover:opacity-100 transition-opacity"
+              title="Cambiar Tema"
+            >
+              {$tema === "claro" ? "☀️" : "🌙"}
+            </button>
+
+            <!-- Musica -->
             <button
               on:click={alternarMusica}
-              class="mr-4 opacity-50 hover:opacity-100 transition-opacity"
+              class="mr-4 opacity-50 hover:opacity-100 transition-opacity text-xl"
+              title={musicaPausada ? "Activar Música" : "Pausar Música"}
             >
               {#if musicaPausada}🔇{:else}🔊{/if}
             </button>
 
+            <!-- Reloj -->
             <div class="text-right border-l {claseBorde} pl-6">
               <div class="text-xl font-bold leading-none">
                 {tiempoActual.toLocaleTimeString([], {
@@ -487,7 +495,7 @@
             <!-- Boton Salir -->
             <button
               on:click={manejarLogout}
-              class="ml-6 p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors opacity-60 hover:opacity-100 uppercase text-[10px] font-bold tracking-widest border border-transparent hover:border-red-500/30"
+              class="ml-6 p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors opacity-60 hover:opacity-100 uppercase text-[10px] font-bold tracking-widest border border-transparent hover:border-red-500/30"
               title="Cerrar Sesión"
             >
               Salir
@@ -530,24 +538,7 @@
               </button>
             </div>
 
-            <!-- Reloj -->
-            <div class="text-right hidden md:block border-l {claseBorde} pl-6">
-              <div class="text-xl font-bold leading-none">
-                {tiempoActual.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </div>
-              <div
-                class="text-[10px] uppercase tracking-widest mt-1 {claseSubTexto}"
-              >
-                {tiempoActual.toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "short",
-                })}
-              </div>
-            </div>
+            <!-- Reloj Extra Eliminado (Estaba duplicado) -->
           </div>
         </div>
       </header>

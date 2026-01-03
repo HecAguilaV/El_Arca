@@ -77,8 +77,8 @@
             </button>
         </div>
 
-        <div class="mt-8 text-center">
-            <p class="text-xs opacity-40">v2.1.0 - Acceso Restringido</p>
+        <div class="mt-8 text-center opacity-0">
+            <!-- Hidden Footer -->
         </div>
     </div>
 </div>

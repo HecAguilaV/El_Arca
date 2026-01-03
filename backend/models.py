@@ -54,6 +54,7 @@ class Nota(Base):
     previsualización = Column(String)
     palabras_clave = Column(String)
     es_favorita = Column(Boolean, default=False)
+    user_id = Column(String, index=True, nullable=True) # Email o UID de Firebase
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
     fecha_actualizacion = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 

@@ -3,9 +3,20 @@
  * Centraliza las peticiones al backend de FastAPI.
  */
 
+import { auth } from "./firebase";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 async function peticion(endpoint, opciones = {}) {
+    // Inyectar user_id
+    const user = auth.currentUser;
+    const userId = user ? user.email : localStorage.getItem("arca_usuario");
+
+    if (userId) {
+        const separator = endpoint.includes("?") ? "&" : "?";
+        endpoint += `${separator}user_id=${encodeURIComponent(userId)}`;
+    }
+
     const respuesta = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...opciones,
         headers: {

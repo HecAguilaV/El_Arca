@@ -35,7 +35,10 @@
   // Dual Workbench State
   let herramientaIzquierda = "biblioteca";
   let herramientaDerecha = "notas";
-  let focoLayout = "ambos"; // 'ambos', 'izquierda', 'derecha'
+
+  // Estado de Colapso Independiente
+  let izquierdaColapsada = false;
+  let derechaColapsada = false;
 
   // Opciones de Herramientas
   const OPCIONES_HERRAMIENTAS = [
@@ -292,6 +295,7 @@
         herramientaDerecha !== "lector"
       ) {
         herramientaIzquierda = "lector";
+        izquierdaColapsada = false; // Auto-expandir al abrir un archivo
       }
     }
     ultimoArchivo = $archivoAbierto;
@@ -550,46 +554,61 @@
       <!-- ZONA IZQUIERDA -->
       <section
         class="transition-all duration-500 ease-in-out relative flex flex-col
-        {focoLayout === 'derecha'
-          ? 'lg:w-[0%] opacity-0 overflow-hidden'
-          : focoLayout === 'izquierda'
-            ? 'flex-1'
-            : 'lg:w-1/2'} 
-        {focoLayout === 'derecha' ? 'h-12 flex-none' : 'flex-1 min-h-0'} 
-        lg:h-full"
+        {izquierdaColapsada
+          ? 'flex-none h-12 lg:w-16 lg:h-full'
+          : 'flex-1 min-h-0 lg:w-1/2'}"
       >
         <!-- Selector Izquierda -->
-        <nav class="flex flex-wrap gap-2 p-1 border-b {claseBorde}">
+        <nav
+          class="flex flex-wrap gap-2 p-1 border-b {claseBorde} items-center"
+        >
           {#each OPCIONES_HERRAMIENTAS as opcion}
             <button
               on:click={() => {
                 herramientaIzquierda = opcion.id;
-                if (focoLayout === "derecha") focoLayout = "ambos"; // Auto-expandir si estaba colapsado
+                izquierdaColapsada = false; // Auto-abrir al seleccionar
               }}
               class="px-3 py-1.5 rounded-lg text-[9px] uppercase font-bold tracking-widest whitespace-nowrap transition-all {herramientaIzquierda ===
               opcion.id
                 ? esClaro
                   ? 'bg-indigo-100 text-indigo-900'
                   : 'bg-white/20 text-white'
-                : 'opacity-40 hover:opacity-100'}"
+                : 'opacity-40 hover:opacity-100'} {izquierdaColapsada
+                ? 'hidden lg:hidden'
+                : ''}"
             >
               {opcion.icono}
               {opcion.label}
             </button>
+            <!-- Icono Solo visible colapsado -->
+            {#if izquierdaColapsada && herramientaIzquierda === opcion.id}
+              <button class="px-2 py-1 bg-indigo-500/20 rounded">
+                {opcion.icono}
+              </button>
+            {/if}
           {/each}
-          <!-- Boton Colapso Movil -->
+
+          <!-- Boton Colapso (Visible Siempre) -->
           <button
-            on:click={() =>
-              (focoLayout = focoLayout === "derecha" ? "ambos" : "derecha")}
-            class="ml-auto lg:hidden px-2 opacity-50"
+            on:click={() => (izquierdaColapsada = !izquierdaColapsada)}
+            class="ml-auto px-2 opacity-50 hover:opacity-100 text-xs"
+            title={izquierdaColapsada ? "Expandir" : "Colapsar"}
           >
-            {focoLayout === "derecha" ? "🔼 Mostrar" : "🔽 Ocultar"}
+            {izquierdaColapsada
+              ? window.innerWidth > 1024
+                ? "▶"
+                : "🔽"
+              : window.innerWidth > 1024
+                ? "◀"
+                : "🔼"}
           </button>
         </nav>
 
         <!-- Contenido Izquierda -->
         <div
-          class="flex-1 relative rounded-xl border {claseBorde} {claseTarjeta} overflow-hidden min-h-0 flex flex-col mt-2"
+          class="flex-1 relative rounded-xl border {claseBorde} {claseTarjeta} overflow-hidden min-h-0 flex flex-col mt-2 {izquierdaColapsada
+            ? 'hidden'
+            : ''}"
         >
           {#if herramientaIzquierda === "biblioteca"}
             <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
@@ -623,78 +642,66 @@
         </div>
       </section>
 
-      <!-- DIVISOR DESKTOP -->
-      <div
-        class="hidden lg:flex flex-col justify-center items-center gap-2 z-10 w-4 flex-shrink-0 sticky top-0 h-screen self-start pointer-events-none"
-      >
-        <div
-          class="pointer-events-auto flex flex-col gap-2 bg-black/20 backdrop-blur-sm p-1 rounded-full"
-        >
-          {#if focoLayout === "ambos"}
-            <button
-              on:click={() => (focoLayout = "izquierda")}
-              class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
-              title="Expandir Izquierda">◀</button
-            >
-            <button
-              on:click={() => (focoLayout = "derecha")}
-              class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
-              title="Expandir Derecha">▶</button
-            >
-          {:else}
-            <button
-              on:click={() => (focoLayout = "ambos")}
-              class="p-1 rounded-full hover:bg-indigo-500 hover:text-white transition-colors opacity-50 hover:opacity-100"
-              title="Restaurar Vista Dividida">●</button
-            >
-          {/if}
-        </div>
-      </div>
+      <!-- DIVISOR DESKTOP (Decorativo) -->
+      <div class="hidden lg:block w-px bg-white/10 h-full mx-2"></div>
 
       <!-- ZONA DERECHA -->
       <section
         class="transition-all duration-500 ease-in-out relative flex flex-col
-        {focoLayout === 'izquierda'
-          ? 'lg:w-[0%] opacity-0 overflow-hidden'
-          : focoLayout === 'derecha'
-            ? 'flex-1'
-            : 'lg:w-1/2'} 
-        {focoLayout === 'izquierda' ? 'h-12 flex-none' : 'flex-1 min-h-0'}
-        lg:h-full"
+        {derechaColapsada
+          ? 'flex-none h-12 lg:w-16 lg:h-full'
+          : 'flex-1 min-h-0 lg:w-1/2'}"
       >
         <!-- Selector Derecha -->
-        <nav class="flex flex-wrap gap-2 p-1 border-b {claseBorde} justify-end">
-          <!-- Boton Colapso Movil (Izquierda en el lado derecho para simetría) -->
+        <nav
+          class="flex flex-wrap gap-2 p-1 border-b {claseBorde} items-center justify-end"
+        >
+          <!-- Boton Colapso (Izquierda aligned) -->
           <button
-            on:click={() =>
-              (focoLayout = focoLayout === "izquierda" ? "ambos" : "izquierda")}
-            class="mr-auto lg:hidden px-2 opacity-50"
+            on:click={() => (derechaColapsada = !derechaColapsada)}
+            class="mr-auto px-2 opacity-50 hover:opacity-100 text-xs"
+            title={derechaColapsada ? "Expandir" : "Colapsar"}
           >
-            {focoLayout === "izquierda" ? "🔼 Mostrar" : "🔽 Ocultar"}
+            {derechaColapsada
+              ? window.innerWidth > 1024
+                ? "◀"
+                : "🔽"
+              : window.innerWidth > 1024
+                ? "▶"
+                : "🔼"}
           </button>
 
           {#each OPCIONES_HERRAMIENTAS as opcion}
             <button
               on:click={() => {
                 herramientaDerecha = opcion.id;
-                if (focoLayout === "izquierda") focoLayout = "ambos";
+                derechaColapsada = false;
               }}
               class="px-3 py-1.5 rounded-lg text-[9px] uppercase font-bold tracking-widest whitespace-nowrap transition-all {herramientaDerecha ===
               opcion.id
                 ? esClaro
                   ? 'bg-indigo-100 text-indigo-900'
                   : 'bg-white/20 text-white'
-                : 'opacity-40 hover:opacity-100'}"
+                : 'opacity-40 hover:opacity-100'} {derechaColapsada
+                ? 'hidden lg:hidden'
+                : ''}"
             >
               {opcion.icono}
               {opcion.label}
             </button>
+            {#if derechaColapsada && herramientaDerecha === opcion.id}
+              <button class="px-2 py-1 bg-indigo-500/20 rounded">
+                {opcion.icono}
+              </button>
+            {/if}
           {/each}
         </nav>
 
         <!-- Contenido Derecha -->
         <div
-          class="flex-1 relative rounded-xl border {claseBorde} {claseTarjeta} overflow-hidden min-h-0 flex flex-col mt-2"
+          class="flex-1 relative rounded-xl border {claseBorde} {claseTarjeta} overflow-hidden min-h-0 flex flex-col mt-2 {derechaColapsada
+            ? 'hidden'
+            : ''}"
         >
           {#if herramientaDerecha === "biblioteca"}
             <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">

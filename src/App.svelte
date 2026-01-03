@@ -361,53 +361,6 @@
     : "bg-white/5 border-white/10";
 </script>
 
-<div
-  class="min-h-screen transition-colors duration-700 {claseFondo} {claseTexto} font-sans selection:bg-indigo-500/30"
->
-  <div
-    class="max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col min-h-screen relative"
-  >
-    <!-- CABECERA -->
-    <header
-      class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 gap-6 flex-shrink-0"
-    >
-      <div class="flex items-center gap-6 w-full justify-between md:w-auto">
-        <!-- Logo -->
-        <div class="flex items-center gap-4">
-          <LogoArca
-            size="w-10 h-10 md:w-12 md:h-12"
-            color={esClaro ? "text-indigo-900" : "text-white"}
-          />
-          <div class="flex flex-col border-l {claseBorde} pl-4 md:pl-6 py-1">
-            <h1
-              class="text-xl md:text-2xl font-black tracking-tighter leading-none {esClaro
-                ? 'text-indigo-950'
-                : 'text-white'}"
-            >
-              El Arca
-            </h1>
-
-            {#if usuarioFirebase}
-              <div class="flex items-center gap-2 mt-1">
-                {#if usuarioFirebase.photoURL}
-                  <img
-                    src={usuarioFirebase.photoURL}
-                    alt="User"
-                    class="w-4 h-4 rounded-full border border-white/20"
-                  />
-                {/if}
-                <span
-                  class="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-60 font-bold"
-                >
-                  {usuarioFirebase.displayName}
-                </span>
-                <button
-                  on:click={async () => {
-                    localStorage.removeItem("arca_usuario"); // Limpiar legacy
-                    usuario.set(null);
-                    await manejarLogout();
-                  }}
-                  class="ml-2 text-[8px] text-red-400 hover:text-red-300 uppercase font-bold tracking-wider"
                   >(Salir)</button
                 >
               </div>
@@ -806,19 +759,6 @@
 
 <Toaster />
 
-{#if cargandoAuth}
-  <div
-    class="flex h-screen w-full flex-col items-center justify-center bg-gray-900 text-white"
-  >
-    <div
-      class="h-12 w-12 animate-spin rounded-full border-4 border-amber-500 border-t-transparent"
-    ></div>
-    <p class="mt-4 animate-pulse text-gray-400">Cargando El Arca...</p>
-  </div>
-{:else if mostrarBienvenida}
-  <div in:fade={{ duration: 300 }}>
-    <ModalBienvenida {esClaro} on:save={manejarGuardadoUsuario} />
-  </div>
 {/if}
 
 <style>

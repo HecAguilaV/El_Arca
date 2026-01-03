@@ -181,23 +181,34 @@
 
   onMount(async () => {
     // Escuchar cambios de Auth
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      // Async para cargar
       usuarioFirebase = user;
       if (user) {
         usuario.set(user.displayName);
         mostrarBienvenida = false; // Ya no necesitamos el modal si entra con Google
+
+        // RE-CARGAR DATOS AL LOGUEARSE (Para traer sus notas privadas)
+        await cargarTodo();
       } else {
-        // Si no hay user de google, verificar si hay legacy
+        // LOGOUT O NO LOGUEADO
         const legacyUser = localStorage.getItem("arca_usuario");
-        if (legacyUser) usuario.set(legacyUser);
-        else {
+        if (legacyUser) {
+          usuario.set(legacyUser);
+          await cargarTodo(); // Cargar legacy
+        } else {
           usuario.set(null);
           mostrarBienvenida = true;
+          // Limpiar datos sensibles si no hay usuario
+          // biblioteca.set([]); // Opcional, biblioteca es pública
+          // Pero notas sí deberían limpiarse o recargarse como públicas
+          await cargarTodo();
         }
       }
     });
 
-    await cargarTodo();
+    // Eliminamos la llamada explícita a cargarTodo() aquí abajo para evitar doble carga race-condition
+    // await cargarTodo();
 
     intervaloTiempo = setInterval(() => {
       tiempoActual = new Date();

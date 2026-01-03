@@ -55,6 +55,7 @@ class Nota(Base):
     palabras_clave = Column(String)
     es_favorita = Column(Boolean, default=False)
     user_id = Column(String, index=True, nullable=True) # Email o UID de Firebase
+    es_sistema = Column(Boolean, default=False) # Nota fija/global para todos
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
     fecha_actualizacion = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 

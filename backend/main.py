@@ -93,7 +93,119 @@ def leer_raiz():
         "version": "2.1.0"
     }
 
-# ... (omitted diagnostic code) ...
+# --- DIAGNÓSTICO ---
+@app.get("/sistema/diagnostico", tags=["Estado"])
+def diagnostico_sistema(db: Session = Depends(obtener_db)):
+    """Verifica conectividad con DB, Google Drive y Vector Store."""
+    resultado = {
+        "base_datos": "conectada",
+        "google_drive": "desconocido",
+        "vector_store": "desconocido",
+        "mime_type_test": "ok"
+    }
+
+    # 1. DB Check
+    from sqlalchemy import text
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as e:
+        resultado["base_datos"] = f"Error: {e}"
+
+    # 2. Drive Check
+    try:
+        # Check simple de credenciales sin pedir archivos (evita 403 en scopes restringidos)
+        from servicio_drive import servicio_drive
+        if servicio_drive.creds or servicio_drive.api_key:
+             resultado["google_drive"] = {"estado": "ok", "mensaje": "Credenciales configuradas"}
+        else:
+             resultado["google_drive"] = {"estado": "error", "mensaje": "Faltan credenciales"}
+    except Exception as e:
+        resultado["google_drive"] = {"estado": "error", "mensaje": str(e)}
+
+    # 3. Vector Check
+    try:
+        # Simple ping implícito
+        if servicio_vectorial and servicio_vectorial.client:
+             servicio_vectorial.client.heartbeat()
+             resultado["vector_store"] = "conectado"
+        else:
+             resultado["vector_store"] = "no inicializado"
+    except Exception as e:
+         resultado["vector_store"] = f"Error: {e}"
+
+    return resultado
+
+# --- ENDPOINTS: LIBROS DIGITALES ---
+
+@app.get("/libros/digitales", response_model=List[schemas.LibroDigital], tags=["Biblioteca Digital"])
+def listar_libros_digitales(db: Session = Depends(obtener_db)):
+    return db.query(models.LibroDigital).all()
+
+@app.post("/libros/digitales/escanear", tags=["Biblioteca Digital"])
+def escanear_biblioteca(background_tasks: BackgroundTasks, db: Session = Depends(obtener_db)):
+    LIBRARY_PATH = os.getenv("LIBRARY_PATH", "../public/library")
+    background_tasks.add_task(ServicioBiblioteca.escanear_directorio, db, LIBRARY_PATH)
+    return {"mensaje": "Escaneo local iniciado en segundo plano."}
+
+@app.post("/libros/digitales/sincronizar-drive", tags=["Biblioteca Digital"])
+def sincronizar_drive(background_tasks: BackgroundTasks, db: Session = Depends(obtener_db)):
+    try:
+        background_tasks.add_task(ServicioBiblioteca.sincronizar_con_drive, db)
+        return {"mensaje": "Sincronización con Google Drive iniciada en segundo plano."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/libros/ver/{file_id}", tags=["Biblioteca Digital"])
+def ver_libro_drive(file_id: str):
+    """Proxy para visualizar archivos directamente desde Google Drive sin hacerlos públicos."""
+    from servicio_drive import servicio_drive
+    
+    try:
+        # Usamos generador para Streaming Real (cero RAM, velocidad instantánea)
+        stream_generator, mime_type, filename = servicio_drive.generar_descarga(file_id)
+        
+        # Validar si el generador es válido (servicio_drive devuelve generador vacío en error)
+        if mime_type == "application/octet-stream" and filename == "error.bin":
+            raise HTTPException(status_code=404, detail="Archivo no encontrado o inaccesible en Drive.")
+
+        headers = {
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "Content-Type": mime_type,
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-cache",
+            "Access-Control-Allow-Origin": "*" # Header manual de seguridad por si falla middleware en streaming
+        }
+        
+        return StreamingResponse(
+            stream_generator, 
+            media_type=mime_type,
+            headers=headers
+        )
+    except Exception as e:
+        print(f"Error sirviendo archivo {file_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+
+# --- ENDPOINTS: LIBROS FÍSICOS ---
+
+@app.get("/libros/fisicos", response_model=List[schemas.LibroFisico], tags=["Biblioteca Física"])
+def listar_libros_fisicos(db: Session = Depends(obtener_db)):
+    return db.query(models.LibroFisico).all()
+
+@app.get("/libros/fisicos/isbn/{isbn}", tags=["Biblioteca Física"])
+def buscar_libro_por_isbn(isbn: str):
+    from servicio_biblioteca import ServicioFisico
+    datos = ServicioFisico.buscar_por_isbn(isbn)
+    if not datos:
+        raise HTTPException(status_code=404, detail="No se encontraron datos para este ISBN")
+    return datos
+
+@app.post("/libros/fisicos", response_model=schemas.LibroFisico, tags=["Biblioteca Física"])
+def agregar_libro_fisico(libro: schemas.LibroFisicoCrear, db: Session = Depends(obtener_db)):
+    nuevo_libro = models.LibroFisico(**libro.dict())
+    db.add(nuevo_libro)
+    db.commit()
+    db.refresh(nuevo_libro)
+    return nuevo_libro
 
 # --- ENDPOINTS: NOTAS (CUADERNO) ---
 

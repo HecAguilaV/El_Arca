@@ -209,10 +209,19 @@
         // RE-CARGAR DATOS AL LOGUEARSE (Para traer sus notas privadas)
         await cargarTodo();
       } else {
-        // LOGOUT O NO LOGUEADO - LIMPIEZA DE SESIÓN
-        detenerMusica(); // 1. Parar música
-        archivoAbierto.set(null); // 2. Cerrar lector
-        izquierdaColapsada = false; // 3. Reset layout
+        // LOGOUT O NO LOGUEADO - LIMPIEZA DE SESIÓN ESTRICTA
+
+        // 1. Limpieza Audio
+        detenerMusica();
+
+        // 2. Limpieza Temporizador (CRÍTICO: Detener el intervalo)
+        clearInterval(intervaloTemporizador);
+        temporizadorActivo = false;
+        segundosTemporizador = 45 * 60; // Reset a 45min
+
+        // 3. Limpieza UI
+        archivoAbierto.set(null);
+        izquierdaColapsada = false;
         derechaColapsada = false;
 
         const legacyUser = localStorage.getItem("arca_usuario");

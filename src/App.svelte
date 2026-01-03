@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from "svelte";
+  import { fade } from "svelte/transition"; // Importar transición
   import { Toaster } from "svelte-french-toast";
   // Importar Firebase
   import { auth, loginWithGoogle, logout } from "./lib/firebase";
@@ -11,7 +12,8 @@
     pestañaActiva,
     biblioteca,
     librosFisicos,
-    archivoAbierto,
+    archivoAbierto, // Corregido: nombre real del store
+    notas, // Agregado
     cargando,
     cargarTodo,
   } from "./lib/stores";
@@ -30,6 +32,7 @@
 
   // Estado Local
   let mostrarBienvenida = false;
+  let cargandoAuth = true; // Estado para spinner inicial
   let usuarioFirebase = null; // Objeto completo de Firebase
 
   // Dual Workbench State
@@ -82,8 +85,23 @@
         }
       }, 100);
     } else {
-      musicaPausada = true;
-      clearInterval(intervaloFade);
+      detenerMusica(); // Reutilizamos lógica
+    }
+  }
+
+  function detenerMusica() {
+    musicaPausada = true;
+    clearInterval(intervaloFade);
+    if (elementoAudio) {
+      // Fade out rápido
+      let fadeOut = setInterval(() => {
+        if (elementoAudio.volume > 0.05) {
+          elementoAudio.volume -= 0.05;
+        } else {
+          elementoAudio.volume = 0;
+          clearInterval(fadeOut);
+        }
+      }, 50);
     }
   }
 
@@ -193,7 +211,7 @@
       } else {
         // LOGOUT O NO LOGUEADO - LIMPIEZA DE SESIÓN
         detenerMusica(); // 1. Parar música
-        archivoActual.set(null); // 2. Cerrar lector
+        archivoAbierto.set(null); // 2. Cerrar lector
         izquierdaColapsada = false; // 3. Reset layout
         derechaColapsada = false;
 
@@ -212,6 +230,7 @@
           await cargarTodo();
         }
       }
+      cargandoAuth = false; // Finalizar carga inicial
     });
 
     // Eliminamos la llamada explícita a cargarTodo() aquí abajo para evitar doble carga race-condition
@@ -776,10 +795,22 @@
   </div>
 </div>
 
-{#if mostrarBienvenida}
-  <ModalBienvenida {esClaro} on:save={manejarGuardadoUsuario} />
-{/if}
 <Toaster />
+
+{#if cargandoAuth}
+  <div
+    class="flex h-screen w-full flex-col items-center justify-center bg-gray-900 text-white"
+  >
+    <div
+      class="h-12 w-12 animate-spin rounded-full border-4 border-amber-500 border-t-transparent"
+    ></div>
+    <p class="mt-4 animate-pulse text-gray-400">Cargando El Arca...</p>
+  </div>
+{:else if mostrarBienvenida}
+  <div in:fade={{ duration: 300 }}>
+    <ModalBienvenida {esClaro} on:save={manejarGuardadoUsuario} />
+  </div>
+{/if}
 
 <style>
   :global(body) {

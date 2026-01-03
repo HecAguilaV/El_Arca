@@ -111,12 +111,12 @@ def evento_inicio():
         contenido_bienvenida = """
         <h3 class="text-xl font-bold text-amber-500 mb-4">Saludo de Bienvenida</h3>
         <p class="mb-4">Hola, soy <strong>Héctor</strong>, desarrollador de este espacio de estudio bíblico.</p>
-        <p class="mb-4">A quien comparta esta aplicación o tenga acceso, quiero contarles que esta es una idea nacida de la necesidad de tener un lugar de <em>inmersión</em> en el estudio de la Palabra. Aunque tradicionalmente este estudio ha sido físico, hoy en día la digitalización es parte de nuestras vidas, ¿por qué no consagrar también un espacio digital para ello?</p>
-        <p class="mb-4">Inspirado por herramientas profesionales como <em>Logos (Faithlife)</em> o <em>e-Sword</em>, creé <strong>El Arca</strong>. Aquí he recopilado y centralizado más de 1.200 archivos (libros, manualidades, tareas) acumulados por mi familia y amigos a lo largo del tiempo, conformando esta Biblioteca Digital.</p>
-        <p class="mb-4">Mi compromiso es seguir trabajando para indexar, categorizar y etiquetar cada archivo, facilitando una búsqueda temática profunda y precisa.</p>
-        <p class="mb-4">Finalmente, deseo que tengan una experiencia enriquecedora y que esta herramienta sea un valor agregado real para su estudio teológico y devocional.</p>
+        <p class="mb-4">A quien le comparta esta aplicación o tenga acceso, decir que es una idea nacida de la necesidad de tener un lugar de <em>inmersión</em> en el estudio de la Palabra, que por lo general ha sido físico, pero teniendo en cuenta que hoy en día la digitalización es ya parte de nuestras vidas, ¿por qué no tener un espacio como tal?</p>
+        <p class="mb-4">Así, inspirado por otras ideas de nivel estratosféricamente profesionales como lo son por ejemplo <em>Logos (Faithlife)</em> o <em>e-Sword</em>, creé esta aplicación web llamada <strong>El Arca</strong>, donde he subido varios archivos digitales recopilados a través del tiempo entre mi familia y amigos. Con un total en el comienzo de 1199 archivos con distintos tipos de libros, tareas, manualidades, etc. Se ha conformado la biblioteca digital.</p>
+        <p class="mb-4">Estoy trabajando para poder indexar todos los archivos y poder crear etiquetas que relacione todos los archivos con determinados temas. Por lo pronto, trabajaré en la categorización y renombrado correcto de los archivos para una mejor búsqueda de estos.</p>
+        <p class="mb-4">Finalmente, quiero desearles a todos una experiencia enriquecedora y que realmente pueda ser un aporte o un valor agregado al estudio de la Palabra de Dios y el estudio Teológico.</p>
         <hr class="border-gray-700 my-4"/>
-        <p class="text-sm text-gray-400 italic">Cualquier comentario para mejorar es bienvenido. Pueden contactarme al hacer clic en el autor al final de la página.</p>
+        <p class="text-sm text-gray-400 italic">Cualquier comentario para mejorar es bienvenido. Pueden contactarme a través de la opción "Acerca de".</p>
         """
 
         if not nota_sistema:

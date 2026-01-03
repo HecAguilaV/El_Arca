@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition"; // Importar transición
   import { Toaster } from "svelte-french-toast";
+  import { Info } from "phosphor-svelte"; // Icono Info
   // Importar Firebase
   import { auth, loginWithGoogle, logout } from "./lib/firebase";
   import { onAuthStateChanged } from "firebase/auth";
@@ -29,9 +30,11 @@
   import Diccionario from "./components/Diccionario.svelte";
   import Lector from "./components/Lector.svelte";
   import BibliotecaFisica from "./components/BibliotecaFisica.svelte";
+  import ModalAcercaDe from "./components/ModalAcercaDe.svelte";
 
   // Estado Local
   let mostrarBienvenida = false;
+  let mostrarAcercaDe = false; // Nuevo estado Modal About
   let cargandoAuth = true; // Estado para spinner inicial
   let usuarioFirebase = null; // Objeto completo de Firebase
 
@@ -457,6 +460,15 @@
           <div class="flex items-center gap-3">
             <!-- Tema -->
             <button
+              on:click={() => (mostrarAcercaDe = true)}
+              class="p-2 -mr-1 rounded-lg border {claseBorde} {claseTarjeta} opacity-40 hover:opacity-100 transition-opacity"
+              title="Acerca de El Arca"
+            >
+              <Info size={16} />
+            </button>
+
+            <!-- Tema -->
+            <button
               on:click={alternarTema}
               class="p-2 mr-2 rounded-lg border {claseBorde} {claseTarjeta} opacity-60 hover:opacity-100 transition-opacity"
               title="Cambiar Tema"
@@ -759,6 +771,10 @@
   </div>
 
   <Toaster />
+
+  {#if mostrarAcercaDe}
+    <ModalAcercaDe {esClaro} on:close={() => (mostrarAcercaDe = false)} />
+  {/if}
 {/if}
 
 <style>

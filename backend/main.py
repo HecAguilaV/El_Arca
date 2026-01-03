@@ -33,13 +33,15 @@ app = FastAPI(
 )
 
 # Configurar CORS para desarrollo local y producción (Vercel)
+# Usamos allow_origin_regex para permitir las URLs dinámicas de preview de Vercel
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173", 
         "https://el-arca.vercel.app",
-        "https://el-arca-git-main-hectors-projects-c4ab2891.vercel.app" # Opcional: para previews
+        "https://el-arca.onrender.com"
     ],
+    allow_origin_regex=r"https://el-arca.*\.vercel\.app", # Permite cualquier subdominio de Vercel que empiece por el-arca
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

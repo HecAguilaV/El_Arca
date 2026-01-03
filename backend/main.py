@@ -72,6 +72,19 @@ def evento_inicio():
     except Exception as e:
         print(f"Nota sobre migración es_favorita: {e}")
 
+    # Migración: es_sistema
+    try:
+        with engine.connect() as conn:
+            try:
+                conn.execute(text("SELECT es_sistema FROM notas LIMIT 1"))
+            except Exception:
+                conn.rollback()
+                print("⚠️ Aplicando migración: Añadiendo columna 'es_sistema' a notas...")
+                conn.execute(text("ALTER TABLE notas ADD COLUMN es_sistema BOOLEAN DEFAULT FALSE"))
+                conn.commit()
+    except Exception as e:
+        print(f"Nota sobre migración es_sistema: {e}")
+
     # Migración: user_id
     try:
         with engine.connect() as conn:
@@ -84,6 +97,34 @@ def evento_inicio():
                 conn.commit()
     except Exception as e:
         print(f"Nota sobre migración user_id: {e}")
+
+    # Semilla: Nota de Bienvenida (Sistema)
+    try:
+        from sqlalchemy.orm import Session
+        session = Session(bind=engine)
+        # Check si existe alguna nota de sistema
+        nota_sistema = session.query(models.Nota).filter(models.Nota.es_sistema == True).first()
+        if not nota_sistema:
+            print("🌱 Creando nota de bienvenida del sistema...")
+            contenido_bienvenida = """
+            <h3>Bienvenido a El Arca</h3>
+            <p>Esta es una nota del sistema visible para todos los usuarios.</p>
+            <p>Puedes editar esta nota si eres el administrador para poner tus propias instrucciones.</p>
+            """
+            nueva_nota = models.Nota(
+                titulo="Bienvenido a El Arca (Sistema)",
+                contenido_html=contenido_bienvenida,
+                previsualización="Nota global del sistema.",
+                palabras_clave="sistema, inicio",
+                es_favorita=False,
+                es_sistema=True,
+                user_id=None 
+            )
+            session.add(nueva_nota)
+            session.commit()
+        session.close()
+    except Exception as e:
+        print(f"Error creando nota semilla: {e}")
 
 @app.get("/", tags=["Estado"])
 def leer_raiz():
@@ -237,15 +278,22 @@ def crear_nota(nota: schemas.NotaCrear, user_id: Optional[str] = None, db: Sessi
 
 @app.put("/notas/{nota_id}", response_model=schemas.Nota, tags=["Cuaderno"])
 def actualizar_nota(nota_id: int, nota_actualizada: schemas.NotaCrear, user_id: Optional[str] = None, db: Session = Depends(obtener_db)):
-    query = db.query(models.Nota).filter(models.Nota.id == nota_id)
-    # Seguridad básica: asegurar que solo editas tus notas si se pasa user_id (opcional por ahora)
-    if user_id:
-        query = query.filter(models.Nota.user_id == user_id)
-        
-    db_nota = query.first()
+    # Buscamos la nota PRIMERO sin filtrar por usuario para ver permisos
+    db_nota = db.query(models.Nota).filter(models.Nota.id == nota_id).first()
     
     if not db_nota:
-        raise HTTPException(status_code=404, detail="Nota no encontrada o permiso denegado")
+        raise HTTPException(status_code=404, detail="Nota no encontrada")
+    
+    # 1. Protección de Notas de Sistema
+    if db_nota.es_sistema:
+        # PERMITIR EDITAR SOLO AL ADMIN
+        ALLOWED_ADMINS = ["hdaguila@gmail.com", "hector@elarca.com"] 
+        if user_id not in ALLOWED_ADMINS:
+            raise HTTPException(status_code=403, detail="Solo el administrador puede editar notas del sistema.")
+
+    # 2. Protección de Notas de Usuarios (si no es sistema)
+    elif user_id and db_nota.user_id and db_nota.user_id != user_id:
+         raise HTTPException(status_code=403, detail="No tienes permiso para editar esta nota.")
     
     for key, value in nota_actualizada.dict().items():
         setattr(db_nota, key, value)

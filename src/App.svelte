@@ -361,132 +361,119 @@
     : "bg-white/5 border-white/10";
 </script>
 
-                  >(Salir)</button
+{#if cargandoAuth}
+    <div class="flex h-screen w-full flex-col items-center justify-center bg-gray-900 text-white">
+        <div class="h-12 w-12 animate-spin rounded-full border-4 border-amber-500 border-t-transparent"></div>
+        <p class="mt-4 animate-pulse text-gray-400">Cargando El Arca...</p>
+    </div>
+{:else if !$usuario}
+    <!-- LOGIN GATE: Solo mostrar modal si no hay usuario -->
+    <div class="bg-gray-900 h-screen w-full flex items-center justify-center">
+        <ModalBienvenida {esClaro} on:save={manejarGuardadoUsuario} />
+    </div>
+{:else}
+    <!-- APP PRINCIPAL: Solo visible si hay usuario autenticado -->
+    <div
+    class="min-h-screen transition-colors duration-700 {claseFondo} {claseTexto} font-sans selection:bg-indigo-500/30"
+    >
+    <div
+        class="max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col min-h-screen relative"
+    >
+        <!-- CABECERA -->
+        <header
+        class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 gap-6 flex-shrink-0"
+        >
+        <div class="flex items-center gap-6 w-full justify-between md:w-auto">
+            <!-- Logo -->
+            <div class="flex items-center gap-4">
+            <LogoArca
+                size="w-10 h-10 md:w-12 md:h-12"
+                color={esClaro ? "text-indigo-900" : "text-white"}
+            />
+            <div class="flex flex-col border-l {claseBorde} pl-4 md:pl-6 py-1">
+                <h1
+                class="text-xl md:text-2xl font-black tracking-tighter leading-none {esClaro
+                    ? 'text-indigo-950'
+                    : 'text-white'}"
                 >
-              </div>
-            {:else}
-              <!-- Botón de Login (o Mostrar Modal si está "atascado" como invitado sin nombre) -->
-              {#if $usuario && !$usuario.includes("Invitado")}
-                <!-- Caso Borde: Usuario Legacy detectado pero sin Firebase -->
+                El Arca
+                </h1>
+
+                {#if usuarioFirebase}
                 <div class="flex items-center gap-2 mt-1">
-                  <span
+                    {#if usuarioFirebase.photoURL}
+                    <img
+                        src={usuarioFirebase.photoURL}
+                        alt="User"
+                        class="w-4 h-4 rounded-full border border-white/20"
+                    />
+                    {/if}
+                    <span
                     class="text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-60 font-bold"
-                  >
-                    {$usuario} (Local)
-                  </span>
-                  <button
-                    on:click={() => {
-                      localStorage.removeItem("arca_usuario");
-                      usuario.set(null);
-                      mostrarBienvenida = true;
-                    }}
-                    class="ml-2 text-[8px] text-indigo-400 hover:text-indigo-300 uppercase font-bold tracking-wider"
-                    >(Conectar)</button
-                  >
+                    >
+                    {usuarioFirebase.displayName}
+                    </span>
                 </div>
-              {:else}
-                <button
-                  on:click={() => {
-                    mostrarBienvenida = true;
-                  }}
-                  class="group flex items-center gap-2 text-[8px] md:text-[9px] uppercase tracking-[0.3em] opacity-60 hover:opacity-100 hover:text-indigo-400 font-bold mt-1 text-left transition-all"
+                {/if}
+            </div>
+            </div>
+
+            <!-- Controles Móviles (Colapso) -->
+            <div class="flex md:hidden gap-2">
+            <!-- Widgets Móviles -->
+            <button
+                on:click={alternarTema}
+                class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs"
+            >
+                {$tema === "claro" ? "☀️" : "🌙"}
+            </button>
+
+            <button
+                on:click={alternarMusica}
+                class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs {!musicaPausada
+                ? 'text-emerald-500 border-emerald-500/50'
+                : ''}"
+            >
+                🎵
+            </button>
+            <button
+                on:click={alternarTemporizador}
+                class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs font-mono {temporizadorActivo
+                ? 'text-indigo-500 border-indigo-500'
+                : ''}"
+            >
+                {temporizadorActivo ? formatearTiempo(segundosTemporizador) : "⏱️"}
+            </button>
+            </div>
+        </div>
+
+        <!-- BARRA DERECHA (Buscador + Menú) -->
+        <div
+            class="hidden md:flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full md:w-auto"
+        >
+             <!-- Widgets Escritorio -->
+             <div class="flex items-center gap-3">
+                 <button on:click={alternarMusica} class="mr-4 opacity-50 hover:opacity-100 transition-opacity">
+                    {#if musicaPausada}🔇{:else}🔊{/if}
+                 </button>
+             
+                <div class="text-right border-l {claseBorde} pl-6">
+                    <div class="text-xl font-bold leading-none">
+                        {tiempoActual.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                     <div class="text-[10px] uppercase tracking-widest mt-1 {claseSubTexto}">
+                        {tiempoActual.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" })}
+                    </div>
+                </div>
+
+                <!-- Boton Salir -->
+                 <button
+                    on:click={manejarLogout}
+                    class="ml-6 p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors opacity-60 hover:opacity-100 uppercase text-[10px] font-bold tracking-widest border border-transparent hover:border-red-500/30"
+                    title="Cerrar Sesión"
                 >
-                  <!-- Google G Logo (Grayscale to Color on Hover) -->
-                  <svg
-                    class="w-3 h-3 grayscale group-hover:grayscale-0 transition-all"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                  Inicia Sesión
+                    Salir
                 </button>
-              {/if}
-            {/if}
-          </div>
-        </div>
-
-        <!-- Widgets Móviles -->
-        <div class="flex md:hidden gap-2 items-center">
-          <button
-            on:click={alternarTema}
-            class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs"
-          >
-            {$tema === "claro" ? "☀️" : "🌙"}
-          </button>
-
-          <button
-            on:click={alternarMusica}
-            class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs {!musicaPausada
-              ? 'text-emerald-500 border-emerald-500/50'
-              : ''}"
-          >
-            🎵
-          </button>
-          <button
-            on:click={alternarTemporizador}
-            class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs font-mono {temporizadorActivo
-              ? 'text-indigo-500 border-indigo-500'
-              : ''}"
-          >
-            {temporizadorActivo ? formatearTiempo(segundosTemporizador) : "⏱️"}
-          </button>
-        </div>
-      </div>
-
-      <!-- Widgets Desktop -->
-      <div class="hidden md:flex items-center gap-4">
-        <!-- Botones de Sistema (Movidos de Estadisticas) -->
-        <div class="flex gap-2 mr-4 border-r {claseBorde} pr-4">
-          <button
-            on:click={verificarSistema}
-            class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-[10px] hover:scale-105 transition-transform"
-            title="Diagnóstico de Sistema"
-          >
-            🩺
-          </button>
-          <button
-            on:click={sincronizarDrive}
-            class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-[10px] hover:scale-105 transition-transform"
-            title="Sincronizar Drive"
-          >
-            ☁️
-          </button>
-        </div>
-
-        <!-- Tema -->
-        <button
-          on:click={alternarTema}
-          class="px-4 py-2 rounded-lg text-[9px] uppercase font-bold tracking-[0.2em] border {claseBorde} {claseTarjeta} hover:border-indigo-500 transition-all"
-        >
-          <span class="opacity-40 mr-2">Visualización:</span>
-          {$tema}
-        </button>
-
-        <!-- Música -->
-        <button
-          on:click={alternarMusica}
-          class="px-4 py-2 rounded-lg text-[9px] uppercase font-bold tracking-[0.2em] border {claseBorde} {claseTarjeta} {!musicaPausada
-            ? 'text-emerald-500 border-emerald-500/50'
-            : 'hover:border-indigo-500'} transition-all"
-        >
-          <span class="opacity-40 mr-2">Ambiente:</span>
-          {musicaPausada ? "Silencio" : "Activo"}
         </button>
         <audio
           bind:this={elementoAudio}

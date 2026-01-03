@@ -191,17 +191,24 @@
         // RE-CARGAR DATOS AL LOGUEARSE (Para traer sus notas privadas)
         await cargarTodo();
       } else {
-        // LOGOUT O NO LOGUEADO
+        // LOGOUT O NO LOGUEADO - LIMPIEZA DE SESIÓN
+        detenerMusica(); // 1. Parar música
+        archivoActual.set(null); // 2. Cerrar lector
+        izquierdaColapsada = false; // 3. Reset layout
+        derechaColapsada = false;
+
         const legacyUser = localStorage.getItem("arca_usuario");
         if (legacyUser) {
           usuario.set(legacyUser);
-          await cargarTodo(); // Cargar legacy
+          await cargarTodo(); // Cargar legacy si existe
         } else {
           usuario.set(null);
+          // 4. Vaciar datos sensibles visualmente
+          biblioteca.set([]);
+          notas.set([]);
+
           mostrarBienvenida = true;
-          // Limpiar datos sensibles si no hay usuario
-          // biblioteca.set([]); // Opcional, biblioteca es pública
-          // Pero notas sí deberían limpiarse o recargarse como públicas
+          // Cargar notas públicas/sistema para que el login no se vea vacío
           await cargarTodo();
         }
       }

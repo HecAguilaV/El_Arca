@@ -114,8 +114,7 @@
                 : 'border-white/10'} text-center"
         >
             <div class="text-[10px] font-medium tracking-tight opacity-50">
-                &copy; {new Date().getFullYear()} Héctor Aguila &bull; Desarrollao
-                con Pasión & Fe
+                &copy; {new Date().getFullYear()} Héctor Aguila &bull; Desarrollado para el Servicio de Apoyo a la Iglesia
             </div>
         </div>
     </div>

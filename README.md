@@ -12,7 +12,7 @@
 
 ## Descripción
 
-El Arca es un sistema avanzado para la gestión de bibliotecas teológicas personales, estudio asistido por IA, toma de notas estructurada y entorno de enfoque devocional.
+El Arca es un sistema para la gestión de bibliotecas teológicas personales, estudio asistido por IA, toma de notas estructurada y entorno de enfoque devocional.
 
 ## Características Principales
 
@@ -36,9 +36,14 @@ Una interfaz diseñada para la productividad teológica:
 *   **Diccionario Teológico:** Definiciones al vuelo.
 *   **Temporizador + Música:** Para sesiones de estudio ("Deep Work").
 
+### Fuentes de Datos
+*   **Santa Biblia:** Proporcionada por [API.Bible](https://scripture.api.bible/) (American Bible Society).
+*   **Inteligencia Artificial:** Google Gemini.
+
 ### Configuración Técnica
 *   **Frontend:** Svelte + Vite + TailwindCSS
-*   **Backend:** Python (FastAPI) + SQLite
+*   **Backend:** Python (FastAPI) + SQLite (Predeterminado) / Postgres
+*   **IA & RAG:** ChromaDB (Vector Search) + Gemini Flash
 *   **Nube:** Despliegue en Vercel & Render
 
 ## Despliegue

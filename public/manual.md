@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/LOGO.svg" alt="El Arca Logo" width="100" />
+  <img src="/LOGO.svg" alt="El Arca Logo" width="100" />
   <h1>Manual de Usuario - El Arca v1.0.0</h1>
 </div>
 

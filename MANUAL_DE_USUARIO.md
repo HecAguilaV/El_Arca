@@ -1,95 +1,82 @@
-# 📘 Manual de Usuario - El Arca v2.1.0
+<div align="center">
+  <img src="public/LOGO.svg" alt="El Arca Logo" width="100" />
+  <h1>Manual de Usuario - El Arca v1.0.0</h1>
+</div>
 
 > **Bienvenido a tu Espacio de Estudio Teológico.**
-> Este manual te guiará a través de todas las funcionalidades de "El Arca", diseñada para potenciar tu inmersión en la Palabra.
+> Este manual te guiará a través de todas las funcionalidades de "El Arca".
 
 ---
 
-## 1. Primeros Pasos 🚀
+## 1. Primeros Pasos
 
-### Iniciar Sesión 🔐
-El Arca utiliza un sistema de **seguridad estricta**. Sin una cuenta verificada, no hay acceso.
-1.  Al entrar, verás una pantalla de bienvenida.
-2.  Haz clic en el botón **"Acceder con Google"**.
-3.  **Importante:** Selecciona tu cuenta de Google en la ventana emergente.
-    *   *Nota: Si estás en un dispositivo compartido, siempre usa el modo incógnito o asegúrate de cerrar sesión al terminar.*
+### Iniciar Sesión de Seguridad
+El Arca utiliza un sistema estricto. Sin cuenta, no hay acceso.
+1.  Entra a la aplicación.
+2.  Haz clic en **"Acceder con Google"**.
+3.  Selecciona tu cuenta personal.
 
-### Navegación General 🧭
-La interfaz se divide en dos grandes zonas (**Dual Workbench**):
-*   **Izquierda (Recursos):** Aquí es donde *lees* (Libros, PDFs).
-*   **Derecha (Herramientas):** Aquí es donde *trabajas* (Notas, Diccionario, Biblia).
+### Navegación (Entorno Dual)
+La pantalla se divide en dos zonas para maximizar tu productividad:
+*   **Panel Izquierdo:** Recursos de lectura.
+*   **Panel Derecho:** Herramientas de trabajo.
 
 ---
 
-## 2. Herramientas del Panel Izquierdo (Recursos)
+## 2. Panel Izquierdo (Recursos)
 
 ### 📚 Biblioteca Digital
-Tu colección personal de archivos PDF.
-*   **Búsqueda:** Escribe en la barra superior para filtrar por título.
-*   **Abrir:** Haz clic en cualquier libro para cargarlo instantáneamente en el **Lector**.
-*   **Nube:** Presiona el botón de nube (`☁️`) para sincronizar nuevos archivos desde tu Google Drive vinculado.
+Tu colección de archivos y documentos escaneados.
+*   Usa el buscador para filtrar por nombre.
+*   Haz clic en un libro para abrirlo.
+*   Usa el botón de nube para sincronizar con Google Drive.
 
 ### 📄 Lector / Visualizador
-El corazón de la lectura.
-*   Visualiza tus PDFs sin salir de la aplicación.
-*   Usa los controles flotantes para hacer Zoom o cambiar de página.
-*   El lector recuerda tu última posición en la sesión actual.
+Visor integrado para tus documentos PDF.
+*   Permite leer sin salir de la aplicación.
+*   Controles de Zoom y navegación de páginas.
 
 ### 📖 Biblioteca Física
-¿Tienes libros reales en tu estantería? Regístralos aquí.
-*   Sirve como un catálogo para saber qué tienes en papel.
-*   Puedes buscar por título, autor o categoría.
+Catálogo de tus libros reales (en papel).
+*   Géstionalo como un inventario de tu estantería personal.
 
 ---
 
-## 3. Herramientas del Panel Derecho (Trabajo)
+## 3. Panel Derecho (Herramientas)
 
 ### ✏️ Cuaderno de Notas
-Tu espacio de escritura teológica.
-*   **Auto-Guardado:** No necesitas guardar. Todo se guarda automáticamente en la base de datos segura.
-*   **Privacidad:** Tus notas son **tuyas**. Nadie más puede verlas.
-*   **Edición Rica:** Usa **Negritas**, *Cursivas*, Listas y Títulos para estructurar tus bosquejos.
+Editor de texto para tus estudios.
+*   Auto-guardado permanente en base de datos.
+*   Formato de texto enriquecido (Negrita, Cursiva, Listas).
 
-### 🤖 Asistente Teológico (IA)
-Tu compañero de debate y consulta.
-*   Selecciona una personalidad (Erudito, Neopuritano, etc.) para cambiar el tono de la respuesta.
-*   Pregúntale sobre exégesis, historia o referencias bíblicas.
-*   *Nota: La IA tiene conocimiento general, pero responde con un enfoque teológico específico.*
+### 🤖 Asistente Teológico
+Inteligencia Artificial entrenada para el debate y consulta.
+*   **Erudito:** Respuesta académica.
+*   **Neopuritano:** Enfoque doctrinal/santidad.
+*   **Bautista Moderno:** Enfoque práctico.
 
-### ✝️ Santa Biblia & Diccionario
-*   **Biblia:** Consulta pasajes rápidos o lee el versículo del día.
-*   **Diccionario:** Escribe cualquier término teológico (ej. "Justificación", "Parusía") y obtén una definición completa al instante.
+### ✝️ Santa Biblia
+Lectura rápida de las Escrituras.
+*   Consulta de pasajes y versículos clave.
 
----
-
-## 4. Barra de Herramientas Superior (Header)
-
-### 🎵 Música & Temporizador (Modo Enfoque)
-Para sesiones de estudio profundo ("Deep Work"):
-*   **⏱️ Temporizador:** Haz clic para iniciar una cuenta regresiva de 45 min.
-    *   Pasa el mouse para ver controles rápidos (+5m / -5m).
-*   **🎵 Música:** Activa sonido ambiental (Lofi/Instrumental) para bloquear distracciones.
-    *   *Tip:* La música se desvanece suavemente cuando el temporizador llega a cero o si pausas.
-
-### ☀️ Temas
-*   Alterna entre **Modo Día** (Papel/Piedra) y **Modo Noche** (Pizarra Oscura) con el botón de Sol/Luna.
-*   Si lo dejas en "Auto", el sistema cambiará según la hora del día.
-
-### ℹ️ Acerca de
-*   Haz clic en el icono de información `(i)` para ver la misión del proyecto y una nota de bienvenida del desarrollador.
+### 📕 Diccionario
+Definiciones teológicas instantáneas.
+*   Ingresa un término y recibe su definición teológica y etimológica.
 
 ---
 
-## 5. Preguntas Frecuentes (Troubleshooting) 🛠️
+## 4. Barra Superior
 
-**P: ¿Qué hago si un PDF no carga?**
-R: Asegúrate de que el archivo no esté corrupto en Drive. Si persiste, intenta recargar la página (`F5`).
+### Temporizador y Música
+Herramientas de enfoque ("Deep Work"):
+*   **Temporizador:** Cuenta regresiva de 45 minutos. Bloques de estudio.
+*   **Música:** Sonido ambiental para bloquear ruido externo.
 
-**P: ¿Puedo usar El Arca en mi celular?**
-R: ¡Sí! La interfaz se adapta automáticamente. El menú se convierte en botones táctiles fáciles de usar.
+### Temas
+*   Alterna entre Modo Día y Noche, o déjalo en Automático según tu hora local.
 
-**P: ¿Cómo cierro sesión completamente?**
-R: Haz clic en el botón **"SALIR"** (rojo) en la esquina superior derecha. Esto borrará tus datos temporales del navegador y cerrará tu sesión de Google en la aplicación.
+### Acerca de
+*   Botón de información con la visión del proyecto y bienvenida.
 
 ---
-*Desarrollado para la Gloria de Dios. v2.1.0*
+*Desarrollado para el Servicio de Apoyo a la Iglesia*

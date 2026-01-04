@@ -66,5 +66,6 @@ DATABASE_URL="sqlite:///./el_arca.db"
     ```
 
 ---
-**Héctor Aguila**
-*Desarrollado para el Servicio de Apoyo a la Iglesia*
+**Autor**
+Hector Aguila
+>_Un Soñador con Poca RAM_ 👨🏻‍💻

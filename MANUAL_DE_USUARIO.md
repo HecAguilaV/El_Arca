@@ -11,7 +11,8 @@
 ## 1. Primeros Pasos
 
 ### Iniciar Sesión de Seguridad
-El Arca utiliza un sistema estricto. Sin cuenta, no hay acceso.
+El Arca utiliza un sistema estricto de seguridad.
+*   **Propósito:** Garantizar que tus notas, subrayados y estudios sean **personales, privados y persistentes**. Al iniciar sesión, tus avances quedan guardados en tu espacio seguro y no se pierden al cambiar de dispositivo.
 1.  Entra a la aplicación.
 2.  Haz clic en **"Acceder con Google"**.
 3.  Selecciona tu cuenta personal.
@@ -29,7 +30,7 @@ La pantalla se divide en dos zonas para maximizar tu productividad:
 Tu colección de archivos y documentos escaneados.
 *   Usa el buscador para filtrar por nombre.
 *   Haz clic en un libro para abrirlo.
-*   Usa el botón de nube para sincronizar con Google Drive.
+*   **Sincronización (Nube):** El botón de nube conecta directamente con la carpeta de Google Drive donde residen los archivos "físicos" del Arca (PDFs/EPUBs), actualizando tu índice local.
 
 ### 📄 Lector / Visualizador
 Visor integrado para tus documentos PDF.
@@ -37,7 +38,8 @@ Visor integrado para tus documentos PDF.
 *   Controles de Zoom y navegación de páginas.
 
 ### 📖 Biblioteca Física
-Catálogo de tus libros reales (en papel).
+Inventario de tu librería personal.
+*   Esta herramienta funciona como un catálogo para llevar el registro de los libros que posees en papel (físicos).
 *   Géstionalo como un inventario de tu estantería personal.
 
 ---
@@ -50,10 +52,16 @@ Editor de texto para tus estudios.
 *   Formato de texto enriquecido (Negrita, Cursiva, Listas).
 
 ### 🤖 Asistente Teológico
-Inteligencia Artificial entrenada para el debate y consulta.
-*   **Erudito:** Respuesta académica.
-*   **Neopuritano:** Enfoque doctrinal/santidad.
-*   **Bautista Moderno:** Enfoque práctico.
+Inteligencia Artificial entrenada para el debate y consulta. Perfiles disponibles:
+*   **Reformado:** Perspectiva Reformada Clásica.
+*   **Puritano:** Tradición Puritana.
+*   **Bautista (1689):** Confesionalidad Bautista.
+*   **Pentecostal:** Perspectiva Carismática/Pentecostal.
+*   **Neopuritano:** Neo-Puritanismo (Santidad y Doctrina).
+*   **Bautista Moderno:** Bautismo contemporáneo y práctico.
+*   **Erudito Académico:** Alta crítica y teología sistemática.
+*   **Pastoral:** Consejería y aplicación práctica.
+*   **Neófito:** Explicaciones sencillas para nuevos creyentes ("Inducción Básica").
 
 ### ✝️ Santa Biblia
 Lectura rápida de las Escrituras.
@@ -79,4 +87,7 @@ Herramientas de enfoque ("Deep Work"):
 *   Botón de información con la visión del proyecto y bienvenida.
 
 ---
-*Desarrollado para el Servicio de Apoyo a la Iglesia*
+---
+**Autor**
+Hector Aguila
+>_Un Soñador con Poca RAM_ 👨🏻‍💻

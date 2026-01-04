@@ -425,6 +425,13 @@
           <div class="flex md:hidden gap-2">
             <!-- Widgets Móviles -->
             <button
+              on:click={() => (mostrarAcercaDe = true)}
+              class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs opacity-60 hover:opacity-100"
+            >
+              <Info size={16} />
+            </button>
+
+            <button
               on:click={alternarTema}
               class="p-2 rounded-lg border {claseBorde} {claseTarjeta} text-xs"
             >
